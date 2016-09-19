@@ -9,6 +9,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../paper-button/paper-button.html">
 
 <!--
 Component that shows your feed from Pinterest
@@ -56,9 +64,29 @@ Example:
        >
     </iron-ajax>
 
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
+      }
+
+      paper-toolbar.red {
+        text-transform: none;
+        --paper-toolbar-background: red;
+        margin-bottom: 10px;
+
+      }
+
+      .icon{
+        --iron-icon-width: 60px;
+        --iron-icon-height: 46px;
+      }
+
+      .menu{
+        float: right;
+      }
+
+      .item{
+        font-size: 12px;
       }
 
       .pin{
@@ -69,15 +97,19 @@ Example:
 
     </style>
 
-    <h1>Testing Pinterest Timeline</h1>
-    <h3>Access token: {{token}}</h3>
-
-    <template is="dom-repeat" items="[[boards]]">
-      <button on-click="get_pins">{{item.name}}</button>
-    </template>
-
-    <br>
-
+    <paper-toolbar class="red">
+      <iron-icon src="logo-pinterest.png" class="icon"></iron-icon>
+      <span class="title">Bienvenido a PicBit</span>
+      <paper-icon-button icon="refresh"></paper-icon-button>
+      <paper-menu-button>
+        <paper-icon-button icon="menu" class="menu dropdown-trigger"></paper-icon-button>
+        <paper-menu class="dropdown-content">
+          <template is="dom-repeat" items="[[boards]]">
+            <paper-item class="item" on-click="get_pins">{{item.name}}</paper-item>
+          </template>
+        </paper-menu>
+      </paper-menu-button>
+    </paper-toolbar>
     <template is="dom-repeat" items="{{pins}}">
       <a href="{{item.url}}" target="_blank">
         <img class="pin" src="{{item.image.original.url}}">
