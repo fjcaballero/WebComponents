@@ -1,0 +1,190 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<!--
+Component that shows your feed from Pinterest
+
+Example:
+
+    <pinterest-timeline></pinterest-timeline>
+
+@group Seed Elements
+@element pinterest-timeline
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="pinterest-timeline">
+
+  <template>
+
+    <iron-ajax
+       id="request_user" 
+       url="https://api.pinterest.com/v1/me/" 
+       method="GET" 
+       params="{{get_user_param}}" 
+       handleAs='json' 
+       on-response="user_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="request_boards" 
+       url="https://api.pinterest.com/v1/me/boards/" 
+       method="GET" 
+       params="{{get_boards_param}}" 
+       handleAs='json' 
+       on-response="boards_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="request_pins" 
+       url="https://api.pinterest.com/v1/boards/{{user.username}}/{{board}}/pins/" 
+       method="GET" 
+       params="{{get_pins_param}}" 
+       handleAs='json' 
+       on-response="pins_received" 
+       >
+    </iron-ajax>
+
+    <style>
+      :host {
+        display: block;
+      }
+
+      .pin{
+        border-radius: 8px;
+        width: 150px;
+        height: 250px;
+      }
+
+    </style>
+
+    <h1>Testing Pinterest Timeline</h1>
+    <h3>Access token: {{token}}</h3>
+
+    <template is="dom-repeat" items="[[boards]]">
+      <button on-click="get_pins">{{item.name}}</button>
+    </template>
+
+    <br>
+
+    <template is="dom-repeat" items="{{pins}}">
+      <a href="{{item.url}}" target="_blank">
+        <img class="pin" src="{{item.image.original.url}}">
+      </a>
+    </template>
+
+    
+  </template>
+
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'pinterest-timeline',
+
+    properties: {
+
+      user: String,
+
+      board: String,
+
+      token: String,
+
+      get_user_param: {
+        type: String,
+        computed: "_get_user_param(token)"
+      },
+
+      get_boards_param: {
+        type: String,
+        computed: "_get_boards_param(token)"
+      },
+
+      get_pins_param: {
+        type: String,
+        computed: "_get_pins_param(token)"
+      }
+
+    },
+
+    get_user: function(){
+      this.$.request_user.generateRequest();
+    },
+
+    get_boards: function(){
+      this.$.request_boards.generateRequest();
+    },
+
+    get_pins: function(e){
+      this.board = e.model.item.id_name;
+      this.$.request_pins.generateRequest();
+    },
+
+    _get_user_param: function(token){
+      return {access_token: token, fields: "id,username,first_name,image"};
+    },
+
+    _get_boards_param: function(token){
+      return {access_token: token};
+    },
+
+    _get_pins_param: function(token){
+      return {access_token: token, fields: "id,url,image"};
+    },
+
+    user_received: function(event, detail){
+      this.user = detail.response.data;
+      this.get_boards();
+    },
+
+    boards_received: function(event, detail){
+      this.boards = detail.response.data;
+      for (var i = this.boards.length - 1; i >= 0; i--) {
+        var splited = this.boards[i].url.split('/');
+        this.boards[i].id_name = splited[splited.length-2];
+        console.log('Board:'+this.boards[i].id_name);
+      };
+    },
+
+    pins_received: function(event, detail){
+      this.pins = detail.response.data;
+    },
+
+    // Element Lifecycle
+
+    attached: function() {
+      // `attached` fires once the element and its parents have been inserted
+      // into a document.
+      //
+      // This is a good place to perform any work related to your element's
+      // visual state or active behavior (measuring sizes, beginning animations,
+      // loading resources, etc).
+      this.get_user();
+
+    },
+
+    detached: function() {
+      // The analog to `attached`, `detached` fires when the element has been
+      // removed from a document.
+      //
+      // Use this to clean up anything you did in `attached`.
+    },
+
+    // Element Behavior
+
+  });
+
+</script>
