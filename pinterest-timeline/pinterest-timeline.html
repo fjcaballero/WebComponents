@@ -17,6 +17,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../paper-menu/paper-menu.html">
 <link rel="import" href="../paper-item/paper-item.html">
 <link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../iron-flex-layout/classes/iron-flex-layout.html">
 
 <!--
 Component that shows your feed from Pinterest
@@ -55,8 +57,18 @@ Example:
     </iron-ajax>
 
     <iron-ajax
+       id="request_following_boards" 
+       url="https://api.pinterest.com/v1/me/following/boards/" 
+       method="GET" 
+       params="{{get_boards_param}}" 
+       handleAs='json' 
+       on-response="following_boards_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
        id="request_pins" 
-       url="https://api.pinterest.com/v1/boards/{{user.username}}/{{board}}/pins/" 
+       url="https://api.pinterest.com/v1/boards/{{username}}/{{board}}/pins/" 
        method="GET" 
        params="{{get_pins_param}}" 
        handleAs='json' 
@@ -67,13 +79,13 @@ Example:
     <style is="custom-style">
       :host {
         display: block;
+        --primary-background-color: red;
       }
 
       paper-toolbar.red {
         text-transform: none;
         --paper-toolbar-background: red;
         margin-bottom: 10px;
-
       }
 
       .icon{
@@ -81,42 +93,81 @@ Example:
         --iron-icon-height: 46px;
       }
 
-      .menu{
-        float: right;
+      .title{
+        margin-left: 0px !important;
+        font-size: 16px !important;
+        text-align: center;
       }
 
       .item{
-        font-size: 12px;
+        border: 1px solid white;
+        border-radius: 8px;
+        margin: 3px;
+        --paper-item-min-height: 30px;
+        text-align: left;
+        font-size: 12px !important;
+        max-height: 40px !important;
+      }
+
+      .dropdown-content{
+        text-align: center;
+        font-family: arial;
+        font-size: 14px;
+        padding: 2px;
+        color: white;
       }
 
       .pin{
         border-radius: 8px;
-        width: 150px;
+        width: 200px;
         height: 250px;
       }
-
+      ​.header{
+        min-height: 60px;
+        max-height:60px;
+      }
+      .content{
+        position:absolute;
+        top: 80px;
+        left:10px;
+        right:0px;
+        bottom:0px;
+        overflow-y:scroll;
+        text-align: center;        
+      }​
     </style>
-
-    <paper-toolbar class="red">
-      <iron-icon src="logo-pinterest.png" class="icon"></iron-icon>
-      <span class="title">Bienvenido a PicBit</span>
-      <paper-icon-button icon="refresh"></paper-icon-button>
-      <paper-menu-button>
-        <paper-icon-button icon="menu" class="menu dropdown-trigger"></paper-icon-button>
-        <paper-menu class="dropdown-content">
-          <template is="dom-repeat" items="[[boards]]">
-            <paper-item class="item" on-click="get_pins">{{item.name}}</paper-item>
-          </template>
-        </paper-menu>
-      </paper-menu-button>
-    </paper-toolbar>
-    <template is="dom-repeat" items="{{pins}}">
-      <a href="{{item.url}}" target="_blank">
-        <img class="pin" src="{{item.image.original.url}}">
-      </a>
-    </template>
-
     
+    <paper-header-panel mode="seamed" class="header">
+      <paper-toolbar class="paper-header red">
+        <iron-icon src="logo-pinterest.png" class="icon"></iron-icon>
+        <span class="title flex">Bienvenido a PicBit</span>
+        <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
+        <paper-menu-button vertical-offset="55">
+          <paper-icon-button icon="menu" class="menu dropdown-trigger"></paper-icon-button>
+          <paper-menu class="dropdown-content" role="listbox">
+            <b>Following boards:</b>
+            <hr>
+            <template is="dom-repeat" items="[[following_boards]]">
+              <paper-item class="item" on-click="get_pins">{{item.name}}</paper-item>
+            </template>
+            <hr>
+            <b>Your boards:</b>
+            <hr>
+            <template is="dom-repeat" items="[[boards]]">
+              <paper-item class="item" on-click="get_pins">{{item.name}}</paper-item>
+            </template>
+          </paper-menu>
+        </paper-menu-button>
+      </paper-toolbar>
+    </paper-header-panel>
+    <div class="content">
+      <template is="dom-repeat" items="{{pins}}">
+        <a href="{{item.url}}" target="_blank">
+          <img class="pin" src="{{item.image.original.url}}">
+        </a>
+      </template>
+    </div>
+
   </template>
 
 </dom-module>
@@ -129,7 +180,7 @@ Example:
 
     properties: {
 
-      user: String,
+      username: String,
 
       board: String,
 
@@ -158,9 +209,11 @@ Example:
 
     get_boards: function(){
       this.$.request_boards.generateRequest();
+      this.$.request_following_boards.generateRequest();
     },
 
     get_pins: function(e){
+      this.username = e.model.item.username;
       this.board = e.model.item.id_name;
       this.$.request_pins.generateRequest();
     },
@@ -186,13 +239,26 @@ Example:
       this.boards = detail.response.data;
       for (var i = this.boards.length - 1; i >= 0; i--) {
         var splited = this.boards[i].url.split('/');
+        this.boards[i].username = splited[splited.length-3];
         this.boards[i].id_name = splited[splited.length-2];
-        console.log('Board:'+this.boards[i].id_name);
+      };
+    },
+
+    following_boards_received: function(event, detail){
+      this.following_boards = detail.response.data;
+      for (var i = this.following_boards.length - 1; i >= 0; i--) {
+        var splited = this.following_boards[i].url.split('/');
+        this.following_boards[i].username = splited[splited.length-3];
+        this.following_boards[i].id_name = splited[splited.length-2];
       };
     },
 
     pins_received: function(event, detail){
       this.pins = detail.response.data;
+    },
+
+    refresh:function(){
+      this.$.request_pins.generateRequest();
     },
 
     // Element Lifecycle
