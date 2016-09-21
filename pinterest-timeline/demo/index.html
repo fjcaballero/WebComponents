@@ -17,13 +17,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <link rel="import" href="../pinterest-timeline.html">
   </head>
   <body unresolved>
+    <template is="dom-bind" id="Demo">
 
-    <pinterest-timeline token="Your Token">
-    </pinterest-timeline>
+      <pinterest-timeline 
+      token="Your token"
+      language="{{language}}"
+      component_directory="./"
+      >
+      </pinterest-timeline>
 
-    <script>
-      
-    </script>
-
+      <button on-click="prueba" name="es">Spanish</button>
+      <button on-click="prueba" name="en">English</button>
+      <script>
+        Demo.language = "es";
+        Demo.prueba = function(event,detail) {
+          Demo.language = event.target.getAttribute('name');
+        }
+      </script>
+    </template>
   </body>
 </html>
