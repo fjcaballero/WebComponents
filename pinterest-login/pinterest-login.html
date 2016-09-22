@@ -30,13 +30,23 @@ Example:
 <template>
 
   <iron-ajax
-         id="request_token" 
-         url="https://api.pinterest.com/v1/oauth/token" 
-         method="POST" 
-         params="{{request_params}}" 
-         handleAs='json' 
-         on-response="token_received" 
-         >
+     id="request_token" 
+     url="https://api.pinterest.com/v1/oauth/token" 
+     method="POST" 
+     params="{{request_params}}" 
+     handleAs='json' 
+     on-response="token_received" 
+     >
+  </iron-ajax>
+
+  <iron-ajax
+     id="request_user" 
+     url="https://api.pinterest.com/v1/me/" 
+     method="GET" 
+     params="{{get_user_param}}" 
+     handleAs='json' 
+     on-response="_user_received" 
+     >
   </iron-ajax>
 
   <style is="custom-style">
@@ -103,39 +113,34 @@ Example:
 
         scope:{
           type: String,
-          value: "read_public,write_public"
+          value: "read_public,read_relationships"
         },
 
-        client_id:{
-          type: String
-        },
+        client_id: String,
 
-        client_secret:{
-          type: String
-        },
+        client_secret: String,
 
-        redirect_uri:{
-          type: String
-        },
+        redirect_uri: String,
 
         state:{
           type: String,
           value: "yolo11235"
         },
 
-        access_code:{
-          type: String,
-          value: "empty"
-        },
+        access_code: String,
 
-        access_token:{
-          type: String
-        },
+        access_token: String,
+
 
         request_params:{
           type: String,
           computed: "get_params(client_id, client_secret, access_code)"
-        }
+        },
+
+        get_user_param: {
+          type: String,
+          computed: "_get_user_param(access_token)"
+        },
     },
 
     login: function(){
@@ -196,14 +201,27 @@ Example:
       return { grant_type : "authorization_code", client_id : client_id,client_secret : client_secret, code : access_code }
     },
 
+    _get_user_param: function(token){
+      return {access_token: token, fields: "id,username"};
+    },
+
     /*
       Handler who gets the response from the token petition, saves the token and fires the event "pinterest-logged" with it
     */
     token_received: function(event, detail){
       this.access_token = detail.response.access_token;
-      console.log(this.access_token);
+      this.$.request_user.generateRequest();
+    },
+
+    _user_received: function(event, detail){
       this.logged = true;
-      this.fire('pinterest-logged',{token:this.access_token, redSocial:'pinterest'});
+      this.username = detail.response.data.username;
+      this.fire('pinterest-logged',
+        {
+          token:this.access_token, 
+          redSocial:'pinterest',
+          userId:this.username
+        });
     },
 
     logout: function(){
