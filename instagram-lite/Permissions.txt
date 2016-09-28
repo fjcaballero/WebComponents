@@ -1,0 +1,20 @@
+User:
+
+	- /users/self
+	- /users/{user-Id} (only for the id of the owner of the token)
+	- /users/media/recent
+	- /users/{user-Id}/media/recent (same as id)
+
+Media:
+
+	- /media/{media-Id} (media of the owner of the token)
+
+Comments:
+
+	- /media/{media-Id}/comments (same as media)
+
+Likes:
+
+	- /media/{media-Id}/likes (same)
+
+
