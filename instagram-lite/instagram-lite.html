@@ -131,7 +131,7 @@ Instagram component that shows your media
       .cardLong{
         padding: 10px;
         margin: 5px;
-        width: 100%;
+        width: 90%;
         background: -webkit-linear-gradient(top,#517fa4,#306088);
         color: white;
         display: inline-flex;
@@ -145,8 +145,22 @@ Instagram component that shows your media
         max-width: 50%;
         min-width: 50%;
         text-align: center;
-
       }
+
+      .commentList{
+        background-color: white;
+        border-radius: 4px;
+        height: 100%;
+        color: black;
+      }
+
+      .commentList p{
+        padding: 5px;
+        min-height: 20px;
+        text-align: left;
+        font-size: 14px;
+      }
+
       .postLong{
         border-radius: 8px;
         width: 80%;
@@ -216,11 +230,17 @@ Instagram component that shows your media
               {{item.comments.count}}
             </div>
             <div class="cardRight">
-              Id: {{item.id}}
               <!-- Comentarios -->
-              <template is="dom-repeat" items="{{item.comments.array}}">
-                <p>Comentario: {{item.text}}</p>
+              Comentarios
+              <div class="commentList">
+                <template is="dom-repeat" items="{{item.comments.array}}">
+                <p>
+                  {{item.from.username}} ({{format_date(item.created_time)}}):
+                  <br>
+                  {{item.text}}
+                </p>
               </template>
+              </div>              
             </div>
           </paper-material>
         </template>
@@ -320,6 +340,11 @@ Instagram component that shows your media
 
         posts: Object,
 
+        c:{
+          type: Number,
+          value: 0,
+        },
+
       },
 
       /* AJAX PARAMETERS */
@@ -338,16 +363,6 @@ Instagram component that shows your media
         this.words = detail.response;
       },
 
-      _posts_response: function(event, detail){
-        this.posts = detail.data;
-        for (var i=0; i < this.posts.length; i++) {
-          if(this.posts[i].comments.count > 0){
-            this.post_id = this.posts[i].id;
-            this.$.requestComments.generateRequest();
-          }          
-        };
-      },
-
       _comments_response: function(event, detail){
         var splitted = event.srcElement._requestUrl.split('/');
         var id = splitted[5];
@@ -360,6 +375,39 @@ Instagram component that shows your media
           }
           i--;
         }        
+      },
+
+      _posts_response: function(event, detail){
+        this.posts = detail.data;
+        this._loop(0);
+      },
+
+      _loop: function(i){
+        if(i < this.posts.length){
+          if(this.posts[i].comments.count > 0){
+            this.post_id = this.posts[i].id;
+            var me = this;
+            
+                var promise = new Promise( 
+                  function (resolve, reject) {
+                    me.$['requestComments'].generateRequest();
+                    window.setTimeout(
+                      function() {
+                        resolve();
+                      }, 400);
+                    
+                  }
+                );
+
+                promise.then(
+                  function(){
+                    me._loop(i+1);
+                  }
+                );
+          }else{
+            this._loop(i+1);
+          }
+        }
       },
 
       /* OBSERVERS */
@@ -390,6 +438,11 @@ Instagram component that shows your media
         this.large = true;
       }, 
 
+      format_date: function(o_date){
+        var date = new Date(parseInt(o_date) * 1000);
+        return date.getDate()+'/'+(date.getMonth()+1)+'/'+date.getFullYear()+' '+date.getHours()+':'+date.getMinutes();
+      },
+
       ready: function() {
         this.$.requestLanguage.generateRequest();
         this.$.requestPosts.generateRequest();
@@ -397,14 +450,6 @@ Instagram component that shows your media
       },
 
     });
-
-    var done = 0;
-
-    function _comments_response_2(jsonp){
-      done++;
-      var i = posts_qeue[done-1].position;
-      posts[i].comments.array = jsonp.data;
-    };
 
   </script>
 
