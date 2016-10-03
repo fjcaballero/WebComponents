@@ -170,6 +170,34 @@ Instagram component that shows your media
 
     </style>
 
+    <!-- Language -->
+    <iron-ajax
+        id="requestLanguage"
+        url="{{language_url}}"
+        method="GET"
+        handleAs='json'
+        on-response="_language_response"
+        >
+    </iron-ajax>
+
+    <!-- Instagram API -->
+    <byutv-jsonp
+        id="requestPosts"
+        url="https://api.instagram.com/v1/users/self/media/recent/"
+        params="{{posts_params}}"
+        on-response="_posts_response"
+        >
+    </byutv-jsonp>
+
+    <byutv-jsonp
+        auto
+        url="https://api.instagram.com/v1/media/{{post_id}}/comments"
+        params="{{posts_params}}"
+        on-response="_comments_response"
+        >
+    </byutv-jsonp>
+
+
     <!--Header-->
     <paper-header-panel mode="seamed" class="header">
       <paper-toolbar class="paper-header blue">
@@ -253,34 +281,6 @@ Instagram component that shows your media
       
     </div>
 
-    <!-- Language -->
-    <iron-ajax
-        id="requestLanguage"
-        url="{{language_url}}"
-        method="GET"
-        handleAs='json'
-        on-response="_language_response"
-        >
-    </iron-ajax>
-
-    <!-- Instagram API -->
-    <byutv-jsonp
-        id="requestPosts"
-        url="https://api.instagram.com/v1/users/self/media/recent/"
-        params="{{posts_params}}"
-        on-response="_posts_response"
-        >
-    </byutv-jsonp>
-
-    <byutv-jsonp
-        id="requestComments"
-        url="https://api.instagram.com/v1/media/{{post_id}}/comments"
-        params="{{posts_params}}"
-        on-response="_comments_response"
-        >
-    </byutv-jsonp>
-
-
   </template>
 
   <script>
@@ -340,11 +340,6 @@ Instagram component that shows your media
 
         posts: Object,
 
-        c:{
-          type: Number,
-          value: 0,
-        },
-
       },
 
       /* AJAX PARAMETERS */
@@ -369,44 +364,36 @@ Instagram component that shows your media
         var i = this.posts.length-1;
         while(i>=0){
           if(id == this.posts[i].id){
-            console.log('Asociando comentarios con id:'+id);
             this.posts[i].comments.array = detail.data;
             i = -1;
           }
           i--;
-        }        
+        }
+        
+        var done = false;
+        while(this.i < this.posts.length-1 && !done){
+          if(this.posts[this.i].comments.count > 0){
+            //Change the postID to generate a new request
+            this.post_id = this.posts[this.i].id;
+            done = true;
+          }
+          this.i++;
+        } 
+         
       },
 
       _posts_response: function(event, detail){
         this.posts = detail.data;
-        this._loop(0);
-      },
 
-      _loop: function(i){
-        if(i < this.posts.length){
-          if(this.posts[i].comments.count > 0){
-            this.post_id = this.posts[i].id;
-            var me = this;
-            
-                var promise = new Promise( 
-                  function (resolve, reject) {
-                    me.$['requestComments'].generateRequest();
-                    window.setTimeout(
-                      function() {
-                        resolve();
-                      }, 400);
-                    
-                  }
-                );
-
-                promise.then(
-                  function(){
-                    me._loop(i+1);
-                  }
-                );
-          }else{
-            this._loop(i+1);
+        var done = false;
+        this.i = 0;
+        while(this.i < this.posts.length-1 && !done){
+          if(this.posts[this.i].comments.count > 0){
+            //Change the postID to generate a new request
+            this.post_id = this.posts[this.i].id;
+            done = true;
           }
+          this.i++;
         }
       },
 
