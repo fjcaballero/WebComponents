@@ -100,13 +100,23 @@ Example:
       :host {
         display: block;
         min-height: 400px;
-        min-width: 350px;
+        min-width: 470px;
+        width: 470px;
+        height: 400px;
+        margin:5px;
       }
 
       paper-toolbar.red {
         text-transform: none;
         --paper-toolbar-background: -webkit-linear-gradient(top,#EC1515,#CB2C2C);
         margin-bottom: 10px;
+      }
+
+      paper-header-panel.header{
+        position: relative;
+        width: 100%;
+        min-height: 60px;
+        max-height:60px;
       }
 
       .icon{
@@ -142,7 +152,6 @@ Example:
       .dropdown-content{
         background: -webkit-linear-gradient(top,#EC1515,#CB2C2C);
         max-width: 150px;
-        right: 20px !important;
         text-align: center;
         font-family: arial;
         font-size: 14px;
@@ -160,12 +169,11 @@ Example:
         max-height:60px;
       }
       .content{
-        top: 80px;
-        left:10px;
-        right:0px;
-        bottom:0px;
-        overflow-y:scroll;
-        text-align: center;        
+        margin-top: 10px;
+        text-align: center;  
+        overflow-y: scroll;
+        max-height: calc( 100% - 70px );
+        position: relative;       
       }​
     </style>
     
