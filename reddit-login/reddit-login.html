@@ -8,6 +8,9 @@ access_code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
 
 <!--
 `reddit-login`
@@ -26,7 +29,9 @@ polymer login for reddit
        headers="{{token_headers}}" 
        params="{{token_params}}" 
        handleAs='json' 
-       on-response="_token_received" 
+       on-response="_token_received"
+       on-error="_error_received"
+       last-error="{{last_error}}" 
        >
     </iron-ajax>
 
@@ -63,14 +68,14 @@ polymer login for reddit
 
       <!-- When the user is not logged this template is used-->
     <template is="dom-if" if="{{!logged}}">
-        <paper-button raised class="sort" title="Reddit" on-click="login">
+        <paper-button raised title="Reddit" on-click="login">
           <iron-icon src="logo-reddit.png" class="icon"></iron-icon>
         </paper-button>   
     </template>
 
     <!-- When the user is logged this template is used-->
     <template is="dom-if" if="{{logged}}">
-      <paper-button raised class="sort disconnect" title="Reddit" on-click="logout">
+      <paper-button raised class="disconnect" title="Reddit" on-click="logout">
         <iron-icon src="logo-reddit.png" class="icon"></iron-icon>
       </paper-button>  
     </template>
@@ -131,6 +136,8 @@ polymer login for reddit
           computed: "_token_params(access_code, redirect_uri)"
         },
 
+        last_error: String,
+
       },
 
       _token_headers:function(client_id, client_secret){
@@ -143,7 +150,13 @@ polymer login for reddit
 
       _token_received: function(event, detail){
         this.access_token = detail.response.access_token;
-        console.log(this.access_token);//Comentar al pasar a produccion
+        this.refresh_token = detail.response.refresh_token;
+        console.log(this.access_token+'/n'+this.refresh_token);
+      },
+
+      _error_received: function(event, detail){
+        console.log(this.last_error.status+': '+this.last_error.statusText);
+        window.alert('Error');
       },
 
       _makeHeaders: function(user,pass){
@@ -194,9 +207,16 @@ polymer login for reddit
                 win.close();
               }
             }
+            else if(url.indexOf('error') != -1){
+              window.clearInterval(loop);
+              var patron = "error"+"=([^&#]*)";
+              var exp = new RegExp(patron);
+              var error = exp.exec(url)[1];
+              console.log('Error: '+error)
+              win.close();
+            }
               
           }catch(e){
-            console.log(e);
           }
         }, 100);
         
