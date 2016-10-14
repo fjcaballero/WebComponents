@@ -4,6 +4,7 @@
 <link rel="import" href="../iron-input/iron-input.html">
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../iron-icons/av-icons.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
 
 <!--
 `reddit-feed`
@@ -41,13 +42,34 @@ Polymer component to show your favourite subreddits feed
     <style>
       :host {
         display: block;
+        min-height: 400px;
+        min-width: 470px;
+        width: 470px;
+        height: 400px;
         background: #EEE;
-        display: relative;
         --title-color: #24a0ed;
+        overflow: hidden;
+        position: relative;
+        resize:both;
       }
 
       .header{
-        background-color: var(--paper-blue-200);
+        background: -webkit-linear-gradient(top,#2196F3,#64B5F6);
+        padding: 5px;
+      }
+
+      .content{
+        overflow-y: scroll;
+        max-height: calc( 100% - 70px );
+        width: 100%;
+        position: relative;
+        margin-top: 5px;
+      }
+
+      .icon{
+        width: 50px;
+        height: 45px;
+        position: absolute;
       }
 
       .post{
@@ -61,16 +83,31 @@ Polymer component to show your favourite subreddits feed
         width: 90%;
         position: relative;
         margin-bottom: 5px;
-        min-height: 78px;
+        min-height: 80px;
       }
 
       .preview{
+        border-radius: 10px;
         max-height: 68px;
         min-height: 68px;
         max-width: 62px;
         min-width: 62px;
         float: left;
         margin: 5px;
+        margin-top: 7px;
+        margin-bottom: 7px;
+        position: absolute;
+      }
+
+      .commentIcon{
+        max-height: 50px;
+        min-height: 50px;
+        max-width: 50px;
+        min-width: 50px;
+        float: left;
+        margin: 11px;
+        margin-top: 15px;
+        margin-bottom: 15px;
         position: absolute;
       }
 
@@ -95,49 +132,99 @@ Polymer component to show your favourite subreddits feed
         color: var(--title-color);
       }
 
+      .postContent .stats{
+        font-size: 13px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+        color: var(--title-color);
+        margin-top: 5px;
+      }
+
+      .stats a{
+        color: var(--title-color) !important;
+        text-decoration: none !important;
+      }
+
+      .stats a:hover{
+        border-radius: 3px;
+        background: var(--title-color);
+        color: white !important;
+      }
+
+      paper-button{
+        max-height: 30px;
+        min-height: 30px;
+        min-width: 30px;
+        padding: 2px;
+        position: relative;
+        background: none;
+      }
+
+      .subredditInput{
+        position: relative;
+        left: 55px;
+        text-align: center;
+        max-width: calc(100% - 55px);
+        margin-top: 10px;
+        font-size: 20px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+      }
+
+      .subredditInput span{
+      }
+
     </style>
     <!-- HEADER -->
     <div class="header">
-      <label for="subreddit">Subreddit</label>
-      <input is="iron-input" bind-value="{{subreddit}}" value="Overwatch" name="subreddit" type="text"></input>
-      <paper-button raised on-tap="hot">
-      HOT
-      </paper-button>
-      <paper-button raised on-tap="_refresh_token">
-      Refresh token
-      </paper-button>
-      <p>Token: {{token}}</p>
-      <p>Refresh: {{refresh_token}}</p>
+      <iron-icon src="reddit-icon.png" class="icon"></iron-icon>
+      <div class="subredditInput">
+        <span>Subreddit</span>
+        <input is="iron-input" bind-value="{{subreddit}}" value="Overwatch"></input>
+      </div>      
+      <br>
+      <paper-button on-tap="hot">HOT</paper-button>
+      <paper-button on-tap="hot">NEW</paper-button>
+      <paper-button on-tap="hot">TOP</paper-button>
+      <span>Token: {{token}}</span>
     </div>    
     <!-- MAIN CONTENT -->
-    <template id="feed_template" is="dom-repeat" items="{{feed}}">
-      <div class="post">
-        <template is="dom-if" if="{{hasMedia(item)}}">
-          <a href="{{item.media}}">
-            <img class="preview" src="{{item.data.thumbnail}}">
-            <iron-icon class="play" icon="av:play-circle-outline"> 
-            </iron-icon>
-          </a>
-        </template>
-        <template is="dom-if" if="{{!hasMedia(item)}}">
-          <template is="dom-if" if="{{hasPreview(item)}}">
-            <img class="preview" src="{{item.image}}">
+    <div class="content">
+      <template id="feed_template" is="dom-repeat" items="{{feed}}">
+        <div class="post">
+          <template is="dom-if" if="{{hasMedia(item)}}">
+            <a target="_blank" href="{{item.media}}">
+              <img class="preview" src="{{item.data.thumbnail}}">
+              <iron-icon class="play" icon="av:play-circle-outline"> 
+              </iron-icon>
+            </a>
           </template>
-          <template is="dom-if" if="{{!hasPreview(item)}}">
-            <iron-icon class="preview" src="{{item.icon}}"></iron-icon>
+          <template is="dom-if" if="{{!hasMedia(item)}}">
+            <template is="dom-if" if="{{hasPreview(item)}}">
+              <a target="_blank" href="{{item.url}}">
+                <img class="preview" src="{{item.image}}">
+              </a>
+            </template>
+            <template is="dom-if" if="{{!hasPreview(item)}}">
+              <img class="commentIcon" src="reddit-comment.png">
+            </template>
           </template>
-        </template>
-        <div class="postContent">
-          <div class="title"> 
-            {{item.data.title}}
-          </div>
-          <br> 
-          Score: {{item.data.score}}
-          <br>
-          Comments: {{item.data.num_comments}}
-        </div>  
-      </div>      
-    </template>
+          <div class="postContent">
+            <div class="title"> 
+              {{item.data.title}}
+            </div>
+            <div class="stats"> 
+              Score: {{item.data.score}}
+              <br>
+              <a target="_blank" href="{{getLink(item)}}">
+                Comments: {{item.data.num_comments}}
+              </a> 
+              
+            </div>
+          </div>  
+        </div>      
+      </template>
+    </div>    
 
   </template>
 
@@ -162,7 +249,7 @@ Polymer component to show your favourite subreddits feed
 
         POSTS_LIMIT: {
           type: Number,
-          value: 15
+          value: 10
         },
 
         subreddit: String,
@@ -242,21 +329,27 @@ Polymer component to show your favourite subreddits feed
           item.media=item.data.url;
           has=true;
         }
+        else if(item.data.preview){
+          if(item.data.preview.images[0].variants.gif){
+            item.media=item.data.preview.images[0].variants.gif.source.url;
+            has=true;
+          }
+        }
         return has;
       },
 
       hasPreview: function(item){
         var has = false
         if(item.data.preview){
-          if(item.data.preview.images[0].variants.gif){
-            item.image=item.data.preview.images[0].variants.gif.source.url;
-          }
-          else{
-            item.image=item.data.preview.images[0].source.url;
-          }          
+          item.image=item.data.preview.images[0].source.url;
+          item.url = item.image;         
           has=true;
         }
         return has;
+      },
+
+      getLink: function(item){
+        return "https://www.reddit.com"+item.data.permalink;
       },
 
     });
