@@ -1,11 +1,12 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../paper-button/paper-button.html">
-<link rel="import" href="../iron-input/iron-input.html">
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../iron-icons/av-icons.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
-
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-header-panel/paper-header-panel.html">
 <!--
 `reddit-feed`
 Polymer component to show your favourite subreddits feed
@@ -28,6 +29,17 @@ Polymer component to show your favourite subreddits feed
     </iron-ajax>
 
     <iron-ajax
+       id="get_subreddits" 
+       url="https://oauth.reddit.com/subreddits/mine/subscriber"
+       method="GET" 
+       headers="{{_api_headers}}" 
+       handle-as='json' 
+       on-response="_subreddits_received"
+       on-error="_subreddit_error"
+       >
+    </iron-ajax>
+
+    <iron-ajax
        id="get_hot" 
        url="https://oauth.reddit.com/r/{{subreddit}}/hot"
        method="GET" 
@@ -35,7 +47,7 @@ Polymer component to show your favourite subreddits feed
        params="{{_hot_params}}" 
        handle-as='json' 
        on-response="_hot_received"
-       on-error="_hot_error_received"
+       on-error="_hot_error"
        >
     </iron-ajax>
 
@@ -45,17 +57,32 @@ Polymer component to show your favourite subreddits feed
         min-height: 400px;
         min-width: 470px;
         width: 470px;
-        height: 400px;
+        height: 600px;
         background: #EEE;
         --title-color: #24a0ed;
         overflow: hidden;
         position: relative;
-        resize:both;
       }
 
       .header{
-        background: -webkit-linear-gradient(top,#2196F3,#64B5F6);
-        padding: 5px;
+        min-height: 60px;
+        max-height:60px;
+      }
+
+      paper-header-panel.header{
+        position: relative;
+        width: 100%;
+        min-height: 60px;
+        max-height:60px;
+      }
+
+      paper-toolbar{
+        text-transform: none;
+        --paper-toolbar-background: -webkit-linear-gradient(top,#2196F3,#64B5F6);
+      }
+
+      .menu{
+        margin-right: 0px !important;
       }
 
       .content{
@@ -63,13 +90,12 @@ Polymer component to show your favourite subreddits feed
         max-height: calc( 100% - 70px );
         width: 100%;
         position: relative;
-        margin-top: 5px;
+        margin-top: 10px;
       }
 
       .icon{
         width: 50px;
         height: 45px;
-        position: absolute;
       }
 
       .post{
@@ -125,19 +151,27 @@ Polymer component to show your favourite subreddits feed
         padding: 5px;
         left: 67px;
         width: calc(100% - 67px - 10px);
+        min-height: 70px;
       }
       .postContent .title{
         font-size: 13.5pt;
         font-family: arial, sans-serif;
         color: var(--title-color);
+        margin-bottom: 35px;
       }
 
-      .postContent .stats{
+      .postContent .stats, .postContent .subreddit{
         font-size: 13px;
         font-family: arial, sans-serif;
         font-weight: 700;
         color: var(--title-color);
-        margin-top: 5px;
+      }
+
+      .stats{
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        padding: 5px;
       }
 
       .stats a{
@@ -146,6 +180,24 @@ Polymer component to show your favourite subreddits feed
       }
 
       .stats a:hover{
+        border-radius: 3px;
+        background: var(--title-color);
+        color: white !important;
+      }
+
+      .subreddit{
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        padding: 5px;
+      }
+
+      .subreddit a{
+        color: var(--title-color) !important;
+        text-decoration: none !important;
+      }
+
+      .subreddit a:hover{
         border-radius: 3px;
         background: var(--title-color);
         color: white !important;
@@ -160,34 +212,69 @@ Polymer component to show your favourite subreddits feed
         background: none;
       }
 
-      .subredditInput{
-        position: relative;
-        left: 55px;
-        text-align: center;
-        max-width: calc(100% - 55px);
-        margin-top: 10px;
-        font-size: 20px;
-        font-family: arial, sans-serif;
-        font-weight: 700;
+      paper-icon-button:hover{
+        color: #FF5722 !important;
       }
 
-      .subredditInput span{
+      .item{
+        text-transform: none;
+        background: none;
+        padding-top: 1px;
+        margin: 3px;
+        margin-bottom: 5px;
+        min-height: 30px;
+        width: 90%;
+        font-size: 12px !important;
+        
+      }
+      .item:hover{
+          background: -webkit-linear-gradient(top,#FF5722,#FF7043);
+      }
+
+      .dropdown-content{
+        background: -webkit-linear-gradient(top,#64B5F6,#2196F3);
+        width: 100px;
+        max-width: 100px;
+        text-align: center;
+        font-family: arial;
+        font-size: 14px;
+        padding: 2px;
+        color: white;
+
+        position: absolute;
+        z-index: 1;
+        float: right;
+        right: -155px;
+        transition: .5s ease;
       }
 
     </style>
-    <!-- HEADER -->
+    <!-- HEADER 
     <div class="header">
       <iron-icon src="reddit-icon.png" class="icon"></iron-icon>
-      <div class="subredditInput">
-        <span>Subreddit</span>
-        <input is="iron-input" bind-value="{{subreddit}}" value="Overwatch"></input>
-      </div>      
+      <span class="title">Welcome to PicBit</span>      
       <br>
       <paper-button on-tap="hot">HOT</paper-button>
       <paper-button on-tap="hot">NEW</paper-button>
       <paper-button on-tap="hot">TOP</paper-button>
       <span>Token: {{token}}</span>
-    </div>    
+    </div>    -->
+    <paper-header-panel mode="seamed" class="header">
+      <paper-toolbar class="paper-header">
+        <iron-icon src="reddit-icon.png" class="icon"></iron-icon>
+        <span class="title flex">Welcome to PicBit</span>
+        <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-back" on-click="before"></paper-icon-button>
+        <span>{{cursor}}</span>
+        <paper-icon-button icon="icons:arrow-forward" on-click="next"></paper-icon-button>
+        <paper-icon-button icon="menu" class="menu" on-click="toggle"></paper-icon-button>
+      </paper-toolbar>
+    </paper-header-panel>
+    <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
+      <paper-button raised class="item" on-click="hot">HOT</paper-button>
+      <paper-button raised class="item" on-click="hot">NEW</paper-button>
+      <paper-button raised class="item" on-click="hot">TOP</paper-button>
+    </paper-menu>
     <!-- MAIN CONTENT -->
     <div class="content">
       <template id="feed_template" is="dom-repeat" items="{{feed}}">
@@ -219,9 +306,12 @@ Polymer component to show your favourite subreddits feed
               <a target="_blank" href="{{getLink(item)}}">
                 Comments: {{item.data.num_comments}}
               </a> 
-              
             </div>
-          </div>  
+            <div class="subreddit"> 
+              <a target="_blank" href="{{getRLink(item)}}">
+                r/{{item.data.subreddit}}
+              </a> 
+            </div>
         </div>      
       </template>
     </div>    
@@ -249,10 +339,20 @@ Polymer component to show your favourite subreddits feed
 
         POSTS_LIMIT: {
           type: Number,
-          value: 10
+          value: 25
         },
 
         subreddit: String,
+
+        cursor:{
+          type: Number,
+          value: 0,
+        },
+
+        cache: {
+          type: Object,
+          value: [],
+        },
 
         _api_headers:{
           type: String,
@@ -266,7 +366,7 @@ Polymer component to show your favourite subreddits feed
 
         _hot_params:{
           type: Object,
-          computed: "_get_hot_params(POSTS_LIMIT)"
+          computed: "_get_hot_params(POSTS_LIMIT, after)"
         },
 
         _token_params:{
@@ -286,8 +386,8 @@ Polymer component to show your favourite subreddits feed
         return {Authorization: "Basic " + btoa(client_id + ":" + client_secret)};
       },
 
-      _get_hot_params: function(POSTS_LIMIT){
-        return {limit: POSTS_LIMIT};
+      _get_hot_params: function(POSTS_LIMIT, after){
+        return {limit: POSTS_LIMIT, after: after};
       },
 
       _get_token_params: function(refresh_token){
@@ -296,19 +396,45 @@ Polymer component to show your favourite subreddits feed
 
       _token_received: function(event, detail){
         this.token = detail.response.access_token;
-        if(this.recall){
+        if(this.recall_subreddits){
+          this.$.get_subreddits.generateRequest();
+          this.recall_subreddits=false;
+        }
+        if(this.recall_hot){
           this.$.get_hot.generateRequest();
-          this.recall=false;
+          this.recall_hot=false;
+        }
+        console.log('Token refreshed: ',this.token);
+      },
+
+      _subreddits_received: function(event, detail){
+        var subreddits = detail.response.data.children;
+        console.log(subreddits);
+        if(subreddits.length>0){
+          for(var i = 0; i < subreddits.length; i++){
+            if(i==0)this.subreddits = subreddits[i].data.display_name;
+            else this.subreddits += "+" + subreddits[i].data.display_name;
+          }
+          this.subreddit = this.subreddits;
+          this.$.get_hot.generateRequest();
+        }
+      },
+
+      _subreddit_error: function(event, detail){
+        if(detail.request.xhr.status==401){
+          this.recall_subreddits=true;
+          this._refresh_token();
         }
       },
 
       _hot_received: function(event, detail){
         this.feed = detail.response.data.children;
+        this.after = detail.response.data.after;
       },
 
-      _hot_error_received: function(event, detail){
+      _hot_error: function(event, detail){
         if(detail.request.xhr.status==401){
-          this.recall=true;
+          this.recall_hot=true;
           this._refresh_token();
         }
       },
@@ -351,6 +477,57 @@ Polymer component to show your favourite subreddits feed
       getLink: function(item){
         return "https://www.reddit.com"+item.data.permalink;
       },
+
+      getRLink: function(item){
+        return "https://www.reddit.com/r/"+item.data.subreddit;
+      },
+
+      next: function(){
+        if(this.cache[this.cursor+1]){
+          this.feed = null;
+          this.$.feed_template.render();
+          this.after = this.cache[this.cursor+1].after;
+          this.feed = this.cache[this.cursor+1].feed;
+        }
+        else{
+          this.cache[this.cursor] = {};
+          this.cache[this.cursor].after = this.after;
+          this.cache[this.cursor].feed = this.feed;
+          this.hot();
+        }        
+        this.cursor++;
+      },
+
+      before: function(){
+        if(this.cursor > 0){
+          if(!this.cache[this.cursor]){
+            this.cache[this.cursor] = {};
+            this.cache[this.cursor].after = this.after;
+            this.cache[this.cursor].feed = this.feed;
+          }          
+          this.cursor--;
+          this.feed = null;
+          this.$.feed_template.render();
+          this.after = this.cache[this.cursor].after;
+          this.feed = this.cache[this.cursor].feed;
+        }        
+      },
+
+      toggle: function(){
+        if(this.$['dropdown-content'].style.right=="-155px"){
+          this.$['dropdown-content'].style.right="0";
+        }
+        else{
+          this.$['dropdown-content'].style.right="-155px";
+        }
+        
+      },
+
+      attached: function(){
+        this.$['dropdown-content'].style.right="-155px";
+        this.$.get_subreddits.generateRequest();
+      },
+
 
     });
   </script>
