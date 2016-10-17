@@ -40,14 +40,14 @@ Polymer component to show your favourite subreddits feed
     </iron-ajax>
 
     <iron-ajax
-       id="get_hot" 
-       url="https://oauth.reddit.com/r/{{subreddit}}/hot"
+       id="get_posts" 
+       url="https://oauth.reddit.com/r/{{subreddit}}/{{list}}"
        method="GET" 
        headers="{{_api_headers}}" 
-       params="{{_hot_params}}" 
+       params="{{_posts_params}}" 
        handle-as='json' 
-       on-response="_hot_received"
-       on-error="_hot_error"
+       on-response="_posts_received"
+       on-error="_posts_error"
        >
     </iron-ajax>
 
@@ -272,8 +272,8 @@ Polymer component to show your favourite subreddits feed
     </paper-header-panel>
     <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
       <paper-button raised class="item" on-click="hot">HOT</paper-button>
-      <paper-button raised class="item" on-click="hot">NEW</paper-button>
-      <paper-button raised class="item" on-click="hot">TOP</paper-button>
+      <paper-button raised class="item" on-click="new">NEW</paper-button>
+      <paper-button raised class="item" on-click="top">TOP</paper-button>
     </paper-menu>
     <!-- MAIN CONTENT -->
     <div class="content">
@@ -344,6 +344,11 @@ Polymer component to show your favourite subreddits feed
 
         subreddit: String,
 
+        list: {
+          type: String,
+          value: "hot"
+        },
+
         cursor:{
           type: Number,
           value: 0,
@@ -364,9 +369,9 @@ Polymer component to show your favourite subreddits feed
           computed: "_get_token_headers(client_id, client_secret)"
         },
 
-        _hot_params:{
+        _posts_params:{
           type: Object,
-          computed: "_get_hot_params(POSTS_LIMIT, after)"
+          computed: "_get_posts_params(POSTS_LIMIT, after)"
         },
 
         _token_params:{
@@ -386,7 +391,7 @@ Polymer component to show your favourite subreddits feed
         return {Authorization: "Basic " + btoa(client_id + ":" + client_secret)};
       },
 
-      _get_hot_params: function(POSTS_LIMIT, after){
+      _get_posts_params: function(POSTS_LIMIT, after){
         return {limit: POSTS_LIMIT, after: after};
       },
 
@@ -400,9 +405,9 @@ Polymer component to show your favourite subreddits feed
           this.$.get_subreddits.generateRequest();
           this.recall_subreddits=false;
         }
-        if(this.recall_hot){
-          this.$.get_hot.generateRequest();
-          this.recall_hot=false;
+        if(this.recall_posts){
+          this.$.get_posts.generateRequest();
+          this.recall_posts=false;
         }
         console.log('Token refreshed: ',this.token);
       },
@@ -416,7 +421,7 @@ Polymer component to show your favourite subreddits feed
             else this.subreddits += "+" + subreddits[i].data.display_name;
           }
           this.subreddit = this.subreddits;
-          this.$.get_hot.generateRequest();
+          this.$.get_posts.generateRequest();
         }
       },
 
@@ -427,14 +432,14 @@ Polymer component to show your favourite subreddits feed
         }
       },
 
-      _hot_received: function(event, detail){
+      _posts_received: function(event, detail){
         this.feed = detail.response.data.children;
         this.after = detail.response.data.after;
       },
 
-      _hot_error: function(event, detail){
+      _posts_error: function(event, detail){
         if(detail.request.xhr.status==401){
-          this.recall_hot=true;
+          this.recall_posts=true;
           this._refresh_token();
         }
       },
@@ -443,10 +448,43 @@ Polymer component to show your favourite subreddits feed
         this.$.refresh_token.generateRequest();
       },
 
-      hot: function(){
+      refresh: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
         this.feed = null;
         this.$.feed_template.render();
-        this.$.get_hot.generateRequest();
+        this.$.get_subreddits.generateRequest();
+      },
+
+      hot: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.list = "hot";
+        this.$.get_posts.generateRequest();
+      },
+
+      top: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.list = "top";
+        this.$.get_posts.generateRequest();
+      },
+
+      new: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.list = "new";
+        this.$.get_posts.generateRequest();
       },
 
       hasMedia: function(item){
@@ -493,7 +531,9 @@ Polymer component to show your favourite subreddits feed
           this.cache[this.cursor] = {};
           this.cache[this.cursor].after = this.after;
           this.cache[this.cursor].feed = this.feed;
-          this.hot();
+          this.feed = null;
+          this.$.feed_template.render();
+          this.$.get_posts.generateRequest();
         }        
         this.cursor++;
       },
