@@ -57,7 +57,7 @@ Polymer component to show your favourite subreddits feed
         min-height: 400px;
         min-width: 470px;
         width: 470px;
-        height: 600px;
+        height: 400px;
         background: #EEE;
         --title-color: #24a0ed;
         overflow: hidden;
@@ -125,6 +125,65 @@ Polymer component to show your favourite subreddits feed
         position: absolute;
       }
 
+      .detail{
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+        position: relative;
+      }
+
+      .detail .title{
+        font-size: 13.5pt;
+        font-family: arial, sans-serif;
+        color: var(--title-color);
+        cursor: pointer;
+      }
+
+      .detail .author{
+        font-size: 13px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+        color: var(--title-color);
+      }
+
+      .detail .comments{
+        font-size: 13px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+      }
+
+      .detail .description{
+        font-size: 1em;
+        font-family: arial, sans-serif;
+        font-weight: 400;
+      }
+
+      .detail a{
+        margin-top: 5px;
+        color: var(--title-color) !important;
+        text-decoration: none !important;
+      }
+
+      .statsBig a:hover{
+        border-radius: 3px;
+        background: var(--title-color);
+        color: white !important;
+      }
+
+      .previewBig{
+        max-width: 100%;
+        min-width: 100%;
+      }
+
+      .playBig{
+        position: absolute;
+        z-index: 1;
+        right: 5px;
+        bottom: 25px;
+        background: none;
+        fill: var(--paper-grey-400);
+      }
+
       .commentIcon{
         max-height: 50px;
         min-height: 50px;
@@ -158,6 +217,7 @@ Polymer component to show your favourite subreddits feed
         font-family: arial, sans-serif;
         color: var(--title-color);
         margin-bottom: 35px;
+        cursor: pointer;
       }
 
       .postContent .stats, .postContent .subreddit{
@@ -249,36 +309,28 @@ Polymer component to show your favourite subreddits feed
       }
 
     </style>
-    <!-- HEADER 
-    <div class="header">
-      <iron-icon src="reddit-icon.png" class="icon"></iron-icon>
-      <span class="title">Welcome to PicBit</span>      
-      <br>
-      <paper-button on-tap="hot">HOT</paper-button>
-      <paper-button on-tap="hot">NEW</paper-button>
-      <paper-button on-tap="hot">TOP</paper-button>
-      <span>Token: {{token}}</span>
-    </div>    -->
+    <!-- HEADER -->
     <paper-header-panel mode="seamed" class="header">
       <paper-toolbar class="paper-header">
         <iron-icon src="reddit-icon.png" class="icon"></iron-icon>
         <span class="title flex">Welcome to PicBit</span>
-        <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
-        <paper-icon-button icon="icons:arrow-back" on-click="before"></paper-icon-button>
-        <span>{{cursor}}</span>
-        <paper-icon-button icon="icons:arrow-forward" on-click="next"></paper-icon-button>
-        <paper-icon-button icon="menu" class="menu" on-click="toggle"></paper-icon-button>
+        <paper-icon-button icon="refresh" on-click="refresh" hidden="{{view_detail}}"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-back" on-click="before" hidden="{{view_detail}}"></paper-icon-button>
+        <span hidden="{{view_detail}}">{{cursor}}</span>
+        <paper-icon-button icon="icons:arrow-forward" on-click="next" hidden="{{view_detail}}"></paper-icon-button>
+        <paper-icon-button icon="menu" class="menu" on-click="toggle" hidden="{{view_detail}}"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-back" on-click="back" hidden="{{!view_detail}}"></paper-icon-button>
       </paper-toolbar>
     </paper-header-panel>
-    <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
+    <paper-menu id="dropdown-content" class="dropdown-content" role="listbox" hidden="{{view_detail}}">
       <paper-button raised class="item" on-click="hot">HOT</paper-button>
       <paper-button raised class="item" on-click="new">NEW</paper-button>
       <paper-button raised class="item" on-click="top">TOP</paper-button>
     </paper-menu>
     <!-- MAIN CONTENT -->
     <div class="content">
-      <template id="feed_template" is="dom-repeat" items="{{feed}}">
-        <div class="post">
+      <template id="feed_template" is="dom-repeat" items="[[feed]]">
+        <div class="post" hidden="{{view_detail}}">
           <template is="dom-if" if="{{hasMedia(item)}}">
             <a target="_blank" href="{{item.media}}">
               <img class="preview" src="{{item.data.thumbnail}}">
@@ -297,7 +349,7 @@ Polymer component to show your favourite subreddits feed
             </template>
           </template>
           <div class="postContent">
-            <div class="title"> 
+            <div class="title" on-click="detail"> 
               {{item.data.title}}
             </div>
             <div class="stats"> 
@@ -314,8 +366,45 @@ Polymer component to show your favourite subreddits feed
             </div>
         </div>      
       </template>
-    </div>    
+      <div class="detail" hidden="{{!view_detail}}">
 
+        <a target="_blank" href="{{getLink(item)}}">
+          <span class="title">{{item.data.title}}</span>
+        </a> 
+        <br>
+        <span class="author">{{item.data.author}}</span>
+        <hr>
+        <span class="description">{{item.data.selftext}}</span>
+
+
+        <template is="dom-if" if="{{hasMedia(item)}}">
+          <a target="_blank" href="{{item.media}}">
+            <img class="previewBig" src="{{item.detail}}">
+            <iron-icon class="playBig" icon="av:play-circle-outline"> 
+            </iron-icon>
+          </a>
+        </template>
+        <template is="dom-if" if="{{!hasMedia(item)}}">
+          <template is="dom-if" if="{{hasPreview(item)}}">
+            <a target="_blank" href="{{item.url}}">
+              <img class="previewBig" src="{{item.image}}">
+            </a>
+          </template>
+        </template>
+
+        <br>
+        <div class="statsBig">
+          <a id="comments" target="_blank" href="{{getLink(item)}}">
+            <span class="comments">Comments: {{item.data.num_comments}}</span>
+          </a> 
+        </div>
+        
+
+        <!--div id="detail_html">
+          {{item.data.secure_media_embed.content}}
+        </div-->
+      </div>     
+    </div>
   </template>
 
   <script>
@@ -336,6 +425,11 @@ Polymer component to show your favourite subreddits feed
         client_secret: String,
 
         /* Configuration */
+
+        view_detail: {
+          type: Boolean,
+          value: false
+        },
 
         POSTS_LIMIT: {
           type: Number,
@@ -409,6 +503,7 @@ Polymer component to show your favourite subreddits feed
           this.$.get_posts.generateRequest();
           this.recall_posts=false;
         }
+        window.alert('Token refreshed: '+this.token);
         console.log('Token refreshed: ',this.token);
       },
 
@@ -490,13 +585,15 @@ Polymer component to show your favourite subreddits feed
       hasMedia: function(item){
         var has = false
         if(item.data.media!=null){
-          item.media=item.data.url;
-          has=true;
+          item.media = item.data.url;
+          item.detail = item.data.media.oembed.thumbnail_url;
+          has = true;
         }
         else if(item.data.preview){
           if(item.data.preview.images[0].variants.gif){
-            item.media=item.data.preview.images[0].variants.gif.source.url;
-            has=true;
+            item.media = item.data.preview.images[0].variants.gif.source.url;
+            item.detail = item.media;
+            has = true;
           }
         }
         return has;
@@ -560,12 +657,20 @@ Polymer component to show your favourite subreddits feed
         else{
           this.$['dropdown-content'].style.right="-155px";
         }
-        
+      },
+
+      detail: function(e){
+        this.item = e.model.item;
+        this.view_detail = true;
+      },
+
+      back: function(){
+        this.view_detail = false;
       },
 
       attached: function(){
         this.$['dropdown-content'].style.right="-155px";
-        this.$.get_subreddits.generateRequest();
+        this.$.get_subreddits.generateRequest();        
       },
 
 
