@@ -1,0 +1,679 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-icons/av-icons.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-header-panel/paper-header-panel.html">
+<!--
+`reddit-feed`
+Polymer component to show your favourite subreddits feed
+
+@demo demo/index.html 
+-->
+
+<dom-module id="reddit-feed">
+  <template>
+
+    <iron-ajax
+       id="refresh_token" 
+       url="https://www.reddit.com/api/v1/access_token" 
+       method="POST"
+       headers="{{_token_headers}}" 
+       params="{{_token_params}}" 
+       handle-as='json' 
+       on-response="_token_received"
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="get_subreddits" 
+       url="https://oauth.reddit.com/subreddits/mine/subscriber"
+       method="GET" 
+       headers="{{_api_headers}}" 
+       handle-as='json' 
+       on-response="_subreddits_received"
+       on-error="_subreddit_error"
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="get_posts" 
+       url="https://oauth.reddit.com/r/{{subreddit}}/{{list}}"
+       method="GET" 
+       headers="{{_api_headers}}" 
+       params="{{_posts_params}}" 
+       handle-as='json' 
+       on-response="_posts_received"
+       on-error="_posts_error"
+       >
+    </iron-ajax>
+
+    <style>
+      :host {
+        display: block;
+        min-height: 400px;
+        min-width: 470px;
+        width: 470px;
+        height: 400px;
+        background: #EEE;
+        --title-color: #24a0ed;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .header{
+        min-height: 60px;
+        max-height:60px;
+      }
+
+      paper-header-panel.header{
+        position: relative;
+        width: 100%;
+        min-height: 60px;
+        max-height:60px;
+      }
+
+      paper-toolbar{
+        text-transform: none;
+        --paper-toolbar-background: -webkit-linear-gradient(top,#2196F3,#64B5F6);
+      }
+
+      .menu{
+        margin-right: 0px !important;
+      }
+
+      .content{
+        overflow-y: scroll;
+        max-height: calc( 100% - 70px );
+        width: 100%;
+        position: relative;
+        margin-top: 10px;
+      }
+
+      .icon{
+        width: 50px;
+        height: 45px;
+      }
+
+      .post{
+        margin-left: auto;
+        margin-right: auto;
+        background-color: white;
+        border: 1px solid;
+        border-color: var(--paper-grey-400);
+        border-radius: 2px;
+        display: block;
+        width: 90%;
+        position: relative;
+        margin-bottom: 5px;
+        min-height: 80px;
+      }
+
+      .preview{
+        border-radius: 10px;
+        max-height: 68px;
+        min-height: 68px;
+        max-width: 62px;
+        min-width: 62px;
+        float: left;
+        margin: 5px;
+        margin-top: 7px;
+        margin-bottom: 7px;
+        position: absolute;
+      }
+
+      .detail{
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+        position: relative;
+      }
+
+      .detail .title{
+        font-size: 13.5pt;
+        font-family: arial, sans-serif;
+        color: var(--title-color);
+        cursor: pointer;
+      }
+
+      .detail .author{
+        font-size: 13px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+        color: var(--title-color);
+      }
+
+      .detail .comments{
+        font-size: 13px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+      }
+
+      .detail .description{
+        font-size: 1em;
+        font-family: arial, sans-serif;
+        font-weight: 400;
+      }
+
+      .detail a{
+        margin-top: 5px;
+        color: var(--title-color) !important;
+        text-decoration: none !important;
+      }
+
+      .statsBig a:hover{
+        border-radius: 3px;
+        background: var(--title-color);
+        color: white !important;
+      }
+
+      .previewBig{
+        max-width: 100%;
+        min-width: 100%;
+      }
+
+      .playBig{
+        position: absolute;
+        z-index: 1;
+        right: 5px;
+        bottom: 25px;
+        background: none;
+        fill: var(--paper-grey-400);
+      }
+
+      .commentIcon{
+        max-height: 50px;
+        min-height: 50px;
+        max-width: 50px;
+        min-width: 50px;
+        float: left;
+        margin: 11px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        position: absolute;
+      }
+
+      .play{
+        position: absolute;
+        z-index: 1;
+        left: 43px;
+        top: 49px;
+        background: none;
+        fill: var(--paper-grey-400);
+      }
+
+      .postContent{
+        position: relative;
+        padding: 5px;
+        left: 67px;
+        width: calc(100% - 67px - 10px);
+        min-height: 70px;
+      }
+      .postContent .title{
+        font-size: 13.5pt;
+        font-family: arial, sans-serif;
+        color: var(--title-color);
+        margin-bottom: 35px;
+        cursor: pointer;
+      }
+
+      .postContent .stats, .postContent .subreddit{
+        font-size: 13px;
+        font-family: arial, sans-serif;
+        font-weight: 700;
+        color: var(--title-color);
+      }
+
+      .stats{
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        padding: 5px;
+      }
+
+      .stats a{
+        color: var(--title-color) !important;
+        text-decoration: none !important;
+      }
+
+      .stats a:hover{
+        border-radius: 3px;
+        background: var(--title-color);
+        color: white !important;
+      }
+
+      .subreddit{
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        padding: 5px;
+      }
+
+      .subreddit a{
+        color: var(--title-color) !important;
+        text-decoration: none !important;
+      }
+
+      .subreddit a:hover{
+        border-radius: 3px;
+        background: var(--title-color);
+        color: white !important;
+      }
+
+      paper-button{
+        max-height: 30px;
+        min-height: 30px;
+        min-width: 30px;
+        padding: 2px;
+        position: relative;
+        background: none;
+      }
+
+      paper-icon-button:hover{
+        color: #FF5722 !important;
+      }
+
+      .item{
+        text-transform: none;
+        background: none;
+        padding-top: 1px;
+        margin: 3px;
+        margin-bottom: 5px;
+        min-height: 30px;
+        width: 90%;
+        font-size: 12px !important;
+        
+      }
+      .item:hover{
+          background: -webkit-linear-gradient(top,#FF5722,#FF7043);
+      }
+
+      .dropdown-content{
+        background: -webkit-linear-gradient(top,#64B5F6,#2196F3);
+        width: 100px;
+        max-width: 100px;
+        text-align: center;
+        font-family: arial;
+        font-size: 14px;
+        padding: 2px;
+        color: white;
+
+        position: absolute;
+        z-index: 1;
+        float: right;
+        right: -155px;
+        transition: .5s ease;
+      }
+
+    </style>
+    <!-- HEADER -->
+    <paper-header-panel mode="seamed" class="header">
+      <paper-toolbar class="paper-header">
+        <iron-icon src="reddit-icon.png" class="icon"></iron-icon>
+        <span class="title flex">Welcome to PicBit</span>
+        <paper-icon-button icon="refresh" on-click="refresh" hidden="{{view_detail}}"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-back" on-click="before" hidden="{{view_detail}}"></paper-icon-button>
+        <span hidden="{{view_detail}}">{{cursor}}</span>
+        <paper-icon-button icon="icons:arrow-forward" on-click="next" hidden="{{view_detail}}"></paper-icon-button>
+        <paper-icon-button icon="menu" class="menu" on-click="toggle" hidden="{{view_detail}}"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-back" on-click="back" hidden="{{!view_detail}}"></paper-icon-button>
+      </paper-toolbar>
+    </paper-header-panel>
+    <paper-menu id="dropdown-content" class="dropdown-content" role="listbox" hidden="{{view_detail}}">
+      <paper-button raised class="item" on-click="hot">HOT</paper-button>
+      <paper-button raised class="item" on-click="new">NEW</paper-button>
+      <paper-button raised class="item" on-click="top">TOP</paper-button>
+    </paper-menu>
+    <!-- MAIN CONTENT -->
+    <div class="content">
+      <template id="feed_template" is="dom-repeat" items="[[feed]]">
+        <div class="post" hidden="{{view_detail}}">
+          <template is="dom-if" if="{{hasMedia(item)}}">
+            <a target="_blank" href="{{item.media}}">
+              <img class="preview" src="{{item.data.thumbnail}}">
+              <iron-icon class="play" icon="av:play-circle-outline"> 
+              </iron-icon>
+            </a>
+          </template>
+          <template is="dom-if" if="{{!hasMedia(item)}}">
+            <template is="dom-if" if="{{hasPreview(item)}}">
+              <a target="_blank" href="{{item.url}}">
+                <img class="preview" src="{{item.image}}">
+              </a>
+            </template>
+            <template is="dom-if" if="{{!hasPreview(item)}}">
+              <img class="commentIcon" src="reddit-comment.png">
+            </template>
+          </template>
+          <div class="postContent">
+            <div class="title" on-click="detail"> 
+              {{item.data.title}}
+            </div>
+            <div class="stats"> 
+              Score: {{item.data.score}}
+              <br>
+              <a target="_blank" href="{{getLink(item)}}">
+                Comments: {{item.data.num_comments}}
+              </a> 
+            </div>
+            <div class="subreddit"> 
+              <a target="_blank" href="{{getRLink(item)}}">
+                r/{{item.data.subreddit}}
+              </a> 
+            </div>
+        </div>      
+      </template>
+      <div class="detail" hidden="{{!view_detail}}">
+
+        <a target="_blank" href="{{getLink(item)}}">
+          <span class="title">{{item.data.title}}</span>
+        </a> 
+        <br>
+        <span class="author">{{item.data.author}}</span>
+        <hr>
+        <span class="description">{{item.data.selftext}}</span>
+
+
+        <template is="dom-if" if="{{hasMedia(item)}}">
+          <a target="_blank" href="{{item.media}}">
+            <img class="previewBig" src="{{item.detail}}">
+            <iron-icon class="playBig" icon="av:play-circle-outline"> 
+            </iron-icon>
+          </a>
+        </template>
+        <template is="dom-if" if="{{!hasMedia(item)}}">
+          <template is="dom-if" if="{{hasPreview(item)}}">
+            <a target="_blank" href="{{item.url}}">
+              <img class="previewBig" src="{{item.image}}">
+            </a>
+          </template>
+        </template>
+
+        <br>
+        <div class="statsBig">
+          <a id="comments" target="_blank" href="{{getLink(item)}}">
+            <span class="comments">Comments: {{item.data.num_comments}}</span>
+          </a> 
+        </div>
+        
+
+        <!--div id="detail_html">
+          {{item.data.secure_media_embed.content}}
+        </div-->
+      </div>     
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'reddit-feed',
+
+      properties: {
+
+        /* Component parameters */
+
+        token: String,
+
+        refresh_token: String,
+
+        client_id: String,
+
+        client_secret: String,
+
+        /* Configuration */
+
+        view_detail: {
+          type: Boolean,
+          value: false
+        },
+
+        POSTS_LIMIT: {
+          type: Number,
+          value: 25
+        },
+
+        subreddit: String,
+
+        list: {
+          type: String,
+          value: "hot"
+        },
+
+        cursor:{
+          type: Number,
+          value: 0,
+        },
+
+        cache: {
+          type: Object,
+          value: [],
+        },
+
+        _api_headers:{
+          type: String,
+          computed: "_get_api_headers(token)"
+        }, 
+
+        _token_headers:{
+          type: String,
+          computed: "_get_token_headers(client_id, client_secret)"
+        },
+
+        _posts_params:{
+          type: Object,
+          computed: "_get_posts_params(POSTS_LIMIT, after)"
+        },
+
+        _token_params:{
+          type: String,
+          computed: "_get_token_params(refresh_token)"
+        },
+
+
+
+      },
+
+      _get_api_headers: function(token){
+        return {Authorization: 'Bearer '+token};
+      },
+
+      _get_token_headers: function(client_id, client_secret){
+        return {Authorization: "Basic " + btoa(client_id + ":" + client_secret)};
+      },
+
+      _get_posts_params: function(POSTS_LIMIT, after){
+        return {limit: POSTS_LIMIT, after: after};
+      },
+
+      _get_token_params: function(refresh_token){
+        return {grant_type: "refresh_token", refresh_token: refresh_token};
+      },
+
+      _token_received: function(event, detail){
+        this.token = detail.response.access_token;
+        if(this.recall_subreddits){
+          this.$.get_subreddits.generateRequest();
+          this.recall_subreddits=false;
+        }
+        if(this.recall_posts){
+          this.$.get_posts.generateRequest();
+          this.recall_posts=false;
+        }
+        window.alert('Token refreshed: '+this.token);
+        console.log('Token refreshed: ',this.token);
+      },
+
+      _subreddits_received: function(event, detail){
+        var subreddits = detail.response.data.children;
+        console.log(subreddits);
+        if(subreddits.length>0){
+          for(var i = 0; i < subreddits.length; i++){
+            if(i==0)this.subreddits = subreddits[i].data.display_name;
+            else this.subreddits += "+" + subreddits[i].data.display_name;
+          }
+          this.subreddit = this.subreddits;
+          this.$.get_posts.generateRequest();
+        }
+      },
+
+      _subreddit_error: function(event, detail){
+        if(detail.request.xhr.status==401){
+          this.recall_subreddits=true;
+          this._refresh_token();
+        }
+      },
+
+      _posts_received: function(event, detail){
+        this.feed = detail.response.data.children;
+        this.after = detail.response.data.after;
+      },
+
+      _posts_error: function(event, detail){
+        if(detail.request.xhr.status==401){
+          this.recall_posts=true;
+          this._refresh_token();
+        }
+      },
+
+      _refresh_token: function(){
+        this.$.refresh_token.generateRequest();
+      },
+
+      refresh: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.$.get_subreddits.generateRequest();
+      },
+
+      hot: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.list = "hot";
+        this.$.get_posts.generateRequest();
+      },
+
+      top: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.list = "top";
+        this.$.get_posts.generateRequest();
+      },
+
+      new: function(){
+        this.cache = {};
+        this.cursor = 0;
+        this.after = "";
+        this.feed = null;
+        this.$.feed_template.render();
+        this.list = "new";
+        this.$.get_posts.generateRequest();
+      },
+
+      hasMedia: function(item){
+        var has = false
+        if(item.data.media!=null){
+          item.media = item.data.url;
+          item.detail = item.data.media.oembed.thumbnail_url;
+          has = true;
+        }
+        else if(item.data.preview){
+          if(item.data.preview.images[0].variants.gif){
+            item.media = item.data.preview.images[0].variants.gif.source.url;
+            item.detail = item.media;
+            has = true;
+          }
+        }
+        return has;
+      },
+
+      hasPreview: function(item){
+        var has = false
+        if(item.data.preview){
+          item.image=item.data.preview.images[0].source.url;
+          item.url = item.image;         
+          has=true;
+        }
+        return has;
+      },
+
+      getLink: function(item){
+        return "https://www.reddit.com"+item.data.permalink;
+      },
+
+      getRLink: function(item){
+        return "https://www.reddit.com/r/"+item.data.subreddit;
+      },
+
+      next: function(){
+        if(this.cache[this.cursor+1]){
+          this.feed = null;
+          this.$.feed_template.render();
+          this.after = this.cache[this.cursor+1].after;
+          this.feed = this.cache[this.cursor+1].feed;
+        }
+        else{
+          this.cache[this.cursor] = {};
+          this.cache[this.cursor].after = this.after;
+          this.cache[this.cursor].feed = this.feed;
+          this.feed = null;
+          this.$.feed_template.render();
+          this.$.get_posts.generateRequest();
+        }        
+        this.cursor++;
+      },
+
+      before: function(){
+        if(this.cursor > 0){
+          if(!this.cache[this.cursor]){
+            this.cache[this.cursor] = {};
+            this.cache[this.cursor].after = this.after;
+            this.cache[this.cursor].feed = this.feed;
+          }          
+          this.cursor--;
+          this.feed = null;
+          this.$.feed_template.render();
+          this.after = this.cache[this.cursor].after;
+          this.feed = this.cache[this.cursor].feed;
+        }        
+      },
+
+      toggle: function(){
+        if(this.$['dropdown-content'].style.right=="-155px"){
+          this.$['dropdown-content'].style.right="0";
+        }
+        else{
+          this.$['dropdown-content'].style.right="-155px";
+        }
+      },
+
+      detail: function(e){
+        this.item = e.model.item;
+        this.view_detail = true;
+      },
+
+      back: function(){
+        this.view_detail = false;
+      },
+
+      attached: function(){
+        this.$['dropdown-content'].style.right="-155px";
+        this.$.get_subreddits.generateRequest();        
+      },
+
+
+    });
+  </script>
+</dom-module>
