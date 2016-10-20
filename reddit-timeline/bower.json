@@ -1,7 +1,7 @@
 {
-  "name": "reddit-feed",
+  "name": "reddit-timeline",
   "description": "Polymer component to show your favourite subreddits feed",
-  "main": "reddit-feed.html",
+  "main": "reddit-timeline.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^1.4.0",
     "iron-input": "~1.0.10"

@@ -1,4 +1,4 @@
-# \<reddit-feed\>
+# \<reddit-timeline\>
 
 Polymer component to show your favourite subreddits feed
 
