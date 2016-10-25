@@ -42,8 +42,7 @@ Polymer component to show your favourite subreddits feed
 
     <iron-ajax
        id="get_posts" 
-       url="https://oauth.reddit.com/r/{{subreddit}}/{{list}}"
-       method="GET" 
+       url="https://oauth.reddit.com/r/{{subreddit}}/{{list}}.json"
        headers="{{_api_headers}}" 
        params="{{_posts_params}}" 
        handle-as='json' 
