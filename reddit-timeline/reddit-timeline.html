@@ -1,3 +1,12 @@
+<!--
+@license
+@author Javier Caballero Abenza. All rights reserved.
+
+`reddit-timeline`
+Polymer component to show your favourite subreddits feed
+
+@demo demo/index.html 
+-->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../paper-button/paper-button.html">
@@ -8,12 +17,6 @@
 <link rel="import" href="../paper-menu/paper-menu.html">
 <link rel="import" href="../paper-header-panel/paper-header-panel.html">
 <link rel="import" href="../google-youtube/google-youtube.html">
-<!--
-`reddit-timeline`
-Polymer component to show your favourite subreddits feed
-
-@demo demo/index.html 
--->
 
 <dom-module id="reddit-timeline">
   <template>
@@ -347,7 +350,7 @@ Polymer component to show your favourite subreddits feed
         <div class="post" hidden="{{view_detail}}">
           <template is="dom-if" if="{{hasMedia(item)}}">
             <a target="_blank" href="{{item.media}}">
-              <img class="preview" src="{{item.data.thumbnail}}">
+              <img class="preview" src="{{item.detail}}">
               <iron-icon class="play" icon="av:play-circle-outline"> 
               </iron-icon>
             </a>
@@ -435,7 +438,10 @@ Polymer component to show your favourite subreddits feed
 
         token: String,
 
-        refresh_token: String,
+        refresh_token: {
+          type: String,
+          observer: "_logged"
+        },
 
         client_id: String,
 
@@ -470,7 +476,10 @@ Polymer component to show your favourite subreddits feed
           value: 25
         },
 
-        subreddit: String,
+        subreddit: {
+          type: String,
+          value: "all"
+        },
 
         list: {
           type: String,
@@ -556,8 +565,6 @@ Polymer component to show your favourite subreddits feed
           this.$.get_posts.generateRequest();
           this.recall_posts=false;
         }
-        window.alert('Token refreshed: '+this.token);
-        console.log('Token refreshed: ',this.token);
       },
 
       _subreddits_received: function(event, detail){
@@ -568,8 +575,8 @@ Polymer component to show your favourite subreddits feed
             else this.subreddits += "+" + subreddits[i].data.display_name;
           }
           this.subreddit = this.subreddits;
-          this.$.get_posts.generateRequest();
         }
+        this.$.get_posts.generateRequest();
       },
 
       _subreddit_error: function(event, detail){
@@ -648,6 +655,10 @@ Polymer component to show your favourite subreddits feed
             item.video = splitted[splitted.length-2];
           }
           else{
+            item.detail = item.data.thumbnail;
+            if(item.detail=='default'){
+              item.detail = this.component_base+"default_gif.png";
+            }
             item.hasVideo = false;
           }
           has = true;
@@ -655,7 +666,10 @@ Polymer component to show your favourite subreddits feed
         else if(item.data.preview){
           if(item.data.preview.images[0].variants.gif){
             item.media = item.data.preview.images[0].variants.gif.source.url;
-            item.detail = item.media;
+            item.detail = item.data.thumbnail;
+            if(item.detail=='default'){
+              item.detail = this.component_base+"default_gif.png";
+            }
             has = true;
           }
         }
@@ -733,9 +747,12 @@ Polymer component to show your favourite subreddits feed
 
       /* COMPONENT BEHAVIOUR*/
 
+      _logged: function(){
+        this.$.get_subreddits.generateRequest();
+      },
+
       attached: function(){
-        this.$['dropdown-content'].style.right="-155px";
-        this.$.get_subreddits.generateRequest();        
+        this.$['dropdown-content'].style.right="-155px";       
       },
 
 
