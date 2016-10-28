@@ -1,152 +1,181 @@
 <!--
 @license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
-<link rel="import" href="../polymer/polymer.html">
+@author Javier Caballero Abenza. All rights reserved.
 
-<!--
-An element providing a solution to no problem in particular.
+An element to search, watch and public videos from/into YouTube.
 
 Example:
 
     <youtube-login></youtube-login>
 
-@group Seed Elements
 @element youtube-login
 @demo demo/index.html
-@hero hero.svg
 -->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+
 <dom-module id="youtube-login">
 
   <template>
-    <style>
-      :host {
+
+    <style is="custom-style">
+
+      :host { 
         display: block;
-        box-sizing: border-box;
+        min-height: 60px;
+        min-width: 80px;
+        max-height: 60px;
+        max-width: 80px;
       }
-  
-      .author img {
-        display: block;
-        float: left;
-        margin-right: 5px;
-        max-height: 100px;
-        max-width: 100px;
+
+      paper-button{
+        background: #ffffff;
+        padding: 0;
+        margin: 0;
       }
+
+      iron-icon{
+        padding: 5px;
+        --iron-icon-width: 80;
+        --iron-icon-height: 60;
+      }
+
+      .logged{ background: #808080; }
+
     </style>
-    <h1>&lt;youtube-login&gt;</h1>
-    <content></content>
-    <p class="author">
-      <img src="{{author.image}}">
-      Cheers,<br/>
-      <span class="name">{{author.name}}</span>
-    </p>
+
+    <paper-button raised id="loginButton" title="YouTube" on-click="login">
+      <iron-icon src="resources/youtube.png"></iron-icon>
+    </paper-button>   
+
+    <iron-ajax
+      id="validate_token"
+      url="https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={{token}}"
+      on-response="_validated"
+      on-error="_error"
+      >
+    </iron-ajax>
+
+
   </template>
 
-</dom-module>
+  <script>
 
-<script>
+    Polymer({
 
-  Polymer({
+      is: 'youtube-login',
 
-    is: 'youtube-login',
+      properties: {
+      //PUBLIC CONFIG PARAMS
 
-    properties: {
+        /* Client Id: The OAuth 2.0 client ID for your application */
+        client_id: String,
 
-      /**
-       * `fancy` indicates that the element should don a monocle and tophat,
-       * while checking its pocket watch.
-       */
-      fancy: Boolean,
+        /* Redirect URI: A registered redirect_uri for your client ID */
+        redirect_uri: String,
 
-      /**
-       * Describes the author of the element, but is really just an excuse to
-       * show off JSDoc annotations.
-       *
-       * @type {{name: string, image: string}}
-       */
-      author: {
-        type: Object,
-        // Use `value` to provide a default value for a property, by setting it
-        // on your element's prototype.
-        //
-        // If you provide a function, as we do here, Polymer will call that
-        // _per element instance_.
-        //
-        // We do that to ensure that each element gets its own copy of the
-        // value, rather than having it shared across all instances (via the
-        // prototype).
-        value: function() {
-          return {
-            name:  'Dimitri Glazkov',
-            image: 'http://addyosmani.com/blog/wp-content/uploads/2013/04/unicorn.jpg',
-          };
+        /* Scope: A space-delimited list of scopes that identify the resources that your application could access on the user's behalf. These values determine which permissions are listed on the consent page that Google displays to the user. */
+        scope: { 
+          type: String, 
+          value:  'https://www.googleapis.com/auth/youtube'+' '+
+                  'https://www.googleapis.com/auth/youtube.readonly'+' '+
+                  'https://www.googleapis.com/auth/youtube.upload'         
+        },
+
+      //INTERNAL CONFIG PARAMS
+
+        _oauth2_url: { 
+          type: String, 
+          value: "https://accounts.google.com/o/oauth2/auth" 
+        },
+
+      },
+
+      //AJAX RESPONSES
+
+      _validated: function(event, detail){
+        var response = detail.response;
+        if(response.audience == this.client_id){
+          //LOGGED
+          this.fire('youtube-logged',{ token: this.token, userId: response.userid });
+          this._logged();
         }
       },
 
-    },
+      _error: function(event, detail){
+        console.error("youtube-login: Error, ", detail.response.error);
+      },
 
-    // Element Lifecycle
+      //LOGICAL FUNCTIONS
 
-    ready: function() {
-      // `ready` is called after all elements have been configured, but
-      // propagates bottom-up. This element's children are ready, but parents
-      // are not.
-      //
-      // This is the point where you should make modifications to the DOM (when
-      // necessary), or kick off any processes the element wants to perform.
-    },
+      login: function(){
 
-    attached: function() {
-      // `attached` fires once the element and its parents have been inserted
-      // into a document.
-      //
-      // This is a good place to perform any work related to your element's
-      // visual state or active behavior (measuring sizes, beginning animations,
-      // loading resources, etc).
-    },
+        //Generate random state
+        this._state = (Math.random()*100000).toString(36);
+        
+        var url =   this._oauth2_url + '?' +
+                    "client_id="+ this.client_id + "&" +
+                    "response_type=token" + "&" +
+                    "redirect_uri="+ this.redirect_uri + "&" +
+                    "scope=" + this.scope + "&" +
+                    "state=" + this._state;
 
-    detached: function() {
-      // The analog to `attached`, `detached` fires when the element has been
-      // removed from a document.
-      //
-      // Use this to clean up anything you did in `attached`.
-    },
+        var win = window.open(url,"",'width=800, height=600');
+        
+        var back = this;
 
-    // Element Behavior
+        var loop = window.setInterval(function(){
+          try {
 
-    /**
-     * The `youtube-login-lasers` event is fired whenever `fireLasers` is called.
-     *
-     * @event youtube-login-lasers
-     * @detail {{sound: String}}
-     */
+            var url = win.document.URL;
 
-    /**
-     * Sometimes it's just nice to say hi.
-     *
-     * @param {string} greeting A positive greeting.
-     * @return {string} The full greeting.
-     */
-    sayHello: function(greeting) {
-      var response = greeting || 'Hello World!';
-      return 'youtube-login says, ' + response;
-    },
+            if(url.indexOf('state') != -1 && url.indexOf('access_token') != -1){
+              window.clearInterval(loop);
+              
+              //access_code from URL
+              var patron = "access_token"+"=([^&#]*)";
+              var exp = new RegExp(patron);
+              back.token = exp.exec(url)[1];
 
-    /**
-     * Attempt to destroy this element's enemies with a beam of light!
-     *
-     * Or, at least, dispatch an event in the vain hope that someone else will
-     * do the zapping.
-     */
-    fireLasers: function() {
-      this.fire('youtube-login-lasers', {sound: 'Pew pew!'});
-    }
+              //state from URL
+              patron = "state"+"=([^&#]*)";
+              exp = new RegExp(patron);
+              var new_state = exp.exec(url)[1];
 
-  });
+              //State received must be equal to local state
+              if(new_state != back._state){
+                console.error("youtube-login: Different state received from the server");
+              }
+              //Securely validate the access token
+              else{
+                back.$.validate_token.generateRequest();
+                win.close();
+              }
+            }
+            else if(url.indexOf('error') != -1){
+              window.clearInterval(loop);
 
-</script>
+              //error from URL
+              var patron = "error"+"=([^&#]*)";
+              var exp = new RegExp(patron);
+              var error = exp.exec(url)[1];
+              console.log('Youtube-Login_Error: '+error);
+              win.close();
+            }
+              
+          }catch(e){}
+        }, 100);
+      },
+
+      _logged: function(){
+        //Apply CSS
+        this.$['loginButton'].className += " logged";
+      }
+
+    });
+
+  </script>
+
+</dom-module>
