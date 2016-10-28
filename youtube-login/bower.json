@@ -4,7 +4,7 @@
   "authors": [
     "Javier Caballero <javier.caballero.abenza@gmail.com>"
   ],
-  "description": "An element to search, watch and public videos from/into YouTube.",
+  "description": "An element to allow users log into Youtube using your app.",
   "keywords": [
     "web-component",
     "polymer",
