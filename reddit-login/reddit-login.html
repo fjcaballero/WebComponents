@@ -1,23 +1,16 @@
 <!--
 @license
-Copyright (c) 2015 Javier Caballero Abenza. All rights reserved.
-This access_code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-access_code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../iron-ajax/iron-ajax.html">
-<link rel="import" href="../paper-button/paper-button.html">
-<link rel="import" href="../iron-icon/iron-icon.html">
+@author Javier Caballero Abenza. All rights reserved.
 
-<!--
 `reddit-login`
 polymer login for reddit
 
 @demo demo/index.html 
 -->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
 
 <dom-module id="reddit-login">
   <template>
@@ -152,11 +145,16 @@ polymer login for reddit
         this.access_token = detail.response.access_token;
         this.refresh_token = detail.response.refresh_token;
         console.log(this.access_token+'/n'+this.refresh_token);
+        this.fire('reddit-logged',
+        {
+          token:this.access_token,
+          refreshToken:this.refresh_token, 
+          redSocial:'reddit'
+        });
       },
 
       _error_received: function(event, detail){
-        console.log(this.last_error.status+': '+this.last_error.statusText);
-        window.alert('Error');
+        console.log('reddit-login_ERROR: '+this.last_error.status+': '+this.last_error.statusText);
       },
 
       _makeHeaders: function(user,pass){
@@ -198,8 +196,7 @@ polymer login for reddit
 
               //State received must be equal to local state
               if(new_state != back.state){
-                /*TODO control de errores*/
-                console.log("Different state received from the pinterest server, watch out");
+                console.log("reddit-login: Different state received from the server");
               }
               //Ask for the access token
               else{

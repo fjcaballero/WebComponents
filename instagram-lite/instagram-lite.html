@@ -1,11 +1,11 @@
 <!--
 @license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+@author Javier Caballero Abenza. All rights reserved.
+
+`instagram-lite`
+Instagram component that shows your media
+
+@demo demo/index.html 
 -->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
@@ -191,6 +191,7 @@ Instagram component that shows your media
 
     <byutv-jsonp
         auto
+        id="requestComments"
         url="https://api.instagram.com/v1/media/{{post_id}}/comments"
         params="{{posts_params}}"
         on-response="_comments_response"
@@ -205,7 +206,7 @@ Instagram component that shows your media
         <!-- Icon -->
         <iron-icon src="instagram-login.png" class="icon"></iron-icon>
         <!-- Title -->
-        <span class="title flex">Welcome to PicBit</span>
+        <span class="title flex">{{words.tittle}}</span>
         <!-- Refresh button -->
         <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
         <!-- Menu -->
@@ -213,12 +214,7 @@ Instagram component that shows your media
           <paper-icon-button icon="menu" class="menu dropdown-trigger"></paper-icon-button>
           <!-- Dropdown content -->
           <paper-menu class="dropdown-content" role="listbox">
-            <hr>
-            <b>{{words.following-boards}}:</b>
-            <hr>
-            <template is="dom-repeat" items="[[following_boards]]">
-              <paper-item class="item" on-click="get_pins">{{item.name}}</paper-item>
-            </template>
+            
           </paper-menu>
         </paper-menu-button>
 
@@ -229,7 +225,7 @@ Instagram component that shows your media
     <div class="content">
       <paper-icon-button icon="icons:view-module" on-click="view_small"></paper-icon-button>
       <paper-icon-button icon="icons:chrome-reader-mode" on-click="view_large"></paper-icon-button>
-      <p>Mis publicaciones</p>      
+      <p>{{words.my_posts}}</p>      
       
       <template is="dom-repeat" items="{{posts}}">
         <!-- Small view -->
@@ -259,7 +255,7 @@ Instagram component that shows your media
             </div>
             <div class="cardRight">
               <!-- Comentarios -->
-              Comentarios
+              {{words.comments}}
               <div class="commentList">
                 <template is="dom-repeat" items="{{item.comments.array}}">
                 <p>
@@ -301,7 +297,7 @@ Instagram component that shows your media
           observer:"_languageChanged"
         },
 
-        component_directory: {
+        component_base: {
           type: String,
           value: "",
           reflectToAttribute: true
@@ -311,7 +307,7 @@ Instagram component that shows your media
 
         language_url: {
           type: String,
-          computed: "_calculateLanguageUrl(component_directory, language_file)"
+          computed: "_calculateLanguageUrl(component_base, language_file)"
         },
 
         /* Estilos */
@@ -391,6 +387,7 @@ Instagram component that shows your media
           if(this.posts[this.i].comments.count > 0){
             //Change the postID to generate a new request
             this.post_id = this.posts[this.i].id;
+            this.$.requestComments.auto=true;
             done = true;
           }
           this.i++;
@@ -407,7 +404,7 @@ Instagram component that shows your media
           this.language = "es";
           this.language_file = "es_es.json"
         }
-        if (this.component_directory) {
+        if (this.component_base) {
           this.$.requestLanguage.generateRequest();
         }
       },
@@ -431,9 +428,9 @@ Instagram component that shows your media
       },
 
       ready: function() {
+        this.$.requestComments.auto=false;
         this.$.requestLanguage.generateRequest();
         this.$.requestPosts.generateRequest();
-
       },
 
     });
