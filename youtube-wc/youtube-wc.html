@@ -1,152 +1,336 @@
 <!--
 @license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
-<link rel="import" href="../polymer/polymer.html">
+@author Javier Caballero Abenza. All rights reserved.
 
-<!--
-An element providing a solution to no problem in particular.
+An element to search and watch videos from YouTube
 
 Example:
 
     <youtube-wc></youtube-wc>
 
-@group Seed Elements
 @element youtube-wc
 @demo demo/index.html
-@hero hero.svg
 -->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../iron-input/iron-input.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-icons/av-icons.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-header-panel/paper-header-panel.html">
+
 <dom-module id="youtube-wc">
 
   <template>
-    <style>
+    <style is="custom-style">
+
       :host {
         display: block;
-        box-sizing: border-box;
+        min-width: 450px;
+        min-height: 300px;        
+        width: 450px;
+        height: 300px;
+        max-width: 600px;
+        max-height: 400px;  
+        background: var(--paper-grey-300);
+        overflow: hidden;
+        position: relative;
+        
+      }
+
+      .header{
+        min-height: 60px;
+        max-height: 60px;
+        background: #ffffff;
+        color: var(--paper-grey-500);
+      }
+
+      .icon{
+        padding: 5px;
+        --iron-icon-width: 70px;
+        --iron-icon-height: 30px;
+      }
+
+      .header paper-icon-button:hover{
+        color: var(--paper-grey-900);
+      }
+
+      .header ::shadow #topBar {
+        padding-left: 0;
+      }
+
+      .header .menu{
+        margin-left: 5px;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+      }
+
+      .header .search-box{
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .dropdown-content{
+        background: #ffffff;
+        width: 100px;
+        max-width: 100px;
+        color: var(--paper-grey-800);
+        padding: 0;
+
+        position: absolute;
+        z-index: 1;
+        left: -105px;
+        top: 60px;
+        transition: .5s ease;
+      }
+
+      .dropdown-content .item{
+        width: 100%;
+        margin: 0;
+        text-transform: none;
+      }
+
+      .content{
+
       }
   
-      .author img {
-        display: block;
-        float: left;
-        margin-right: 5px;
-        max-height: 100px;
-        max-width: 100px;
-      }
     </style>
-    <h1>&lt;youtube-wc&gt;</h1>
-    <content></content>
-    <p class="author">
-      <img src="{{author.image}}">
-      Cheers,<br/>
-      <span class="name">{{author.name}}</span>
-    </p>
+    <!--
+    <input is="iron-input" bind-value="{{_keywords}}">
+    <paper-button raised on-click="search">SEARCH</paper-button>
+    -->
+    <!-- HEADER -->
+    <paper-header-panel mode="seamed">
+      <paper-toolbar class="header">
+        <paper-icon-button icon="menu" class="menu" on-click="toggle"></paper-icon-button>
+        <iron-icon src="resources/youtube.png" class="icon"></iron-icon>
+        <div class="search-box">
+          <input is="iron-input" bind-value="{{_keywords}}">
+          <paper-icon-button icon="search" on-click="search"></paper-icon-button>
+        </div>
+      </paper-toolbar>
+    </paper-header-panel>
+    <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
+      <paper-button raised class="item">Opcion 1</paper-button>
+      <paper-button raised class="item">Opcion 2</paper-button>
+      <paper-button raised class="item">Opcion 3</paper-button>
+    </paper-menu>
+    <!-- MAIN CONTENT -->
+    <div class="content">
+    </div>
+    <div class="footer">
+      <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
+      <paper-icon-button icon="icons:arrow-back" on-click="before"></paper-icon-button>
+      <span>{{cursor}}</span>
+      <paper-icon-button icon="icons:arrow-forward"></paper-icon-button>
+    </div>
+
+
+
+
+
+
+
+
+    <!-- AJAX CALLS -->
+
+    <iron-ajax
+      id="language_request"
+      url="{{component_base}}language/{{_lan_file}}"
+      on-response="_language_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+       id="refresh_token" 
+       url="https://accounts.google.com/o/oauth2/token" 
+       method="POST"
+       params="{{_token_params}}" 
+       on-response="_token_received"
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="search_request" 
+       url="{{_base_URL}}/search?{{_search_params}}" 
+       on-response="_search_response"
+       >
+    </iron-ajax>
+    
   </template>
 
-</dom-module>
+  <script>
 
-<script>
+    Polymer({
 
-  Polymer({
+      is: 'youtube-wc',
 
-    is: 'youtube-wc',
+      properties: {
 
-    properties: {
+      //PUBLIC CONFIG PARAMS
 
-      /**
-       * `fancy` indicates that the element should don a monocle and tophat,
-       * while checking its pocket watch.
-       */
-      fancy: Boolean,
+        /* Token: The access_token generated to grant access to the API */
+        token: {
+          type: String,
+          reflectToAttribute: true
+        },
 
-      /**
-       * Describes the author of the element, but is really just an excuse to
-       * show off JSDoc annotations.
-       *
-       * @type {{name: string, image: string}}
-       */
-      author: {
-        type: Object,
-        // Use `value` to provide a default value for a property, by setting it
-        // on your element's prototype.
-        //
-        // If you provide a function, as we do here, Polymer will call that
-        // _per element instance_.
-        //
-        // We do that to ensure that each element gets its own copy of the
-        // value, rather than having it shared across all instances (via the
-        // prototype).
-        value: function() {
-          return {
-            name:  'Dimitri Glazkov',
-            image: 'http://addyosmani.com/blog/wp-content/uploads/2013/04/unicorn.jpg',
-          };
+        /* Refresh Token: The refresh token generated to update the access_token */
+        refresh_token: String,
+
+        /* API Key: The API Key for your application */
+        api_key: String,
+
+        /* Client Id: The OAuth 2.0 client ID for your application */
+        client_id: String,
+
+        /* Client Secret: The OAuth 2.0 client SECRET for your application */
+        client_secret: String,
+
+        /* Component Base: The component base directory */
+        component_base: {
+          type: String,
+          value:""
+        },
+
+        /* Language: Language for your application */
+        language: {
+          type: String,
+          value: "en",
+          observer: "_languageChanged"
+        },
+
+      //INTERNAL CONFIG PARAMS
+
+        /* Language */
+
+        _lan_file: String,
+
+        /* Token refresh */
+
+        _token_params:{
+          type: String,
+          computed: "_get_token_params(client_id, client_secret, refresh_token)"
+        },
+
+        /* API methods */
+
+        _base_URL:{
+          type: String,
+          value: "https://www.googleapis.com/youtube/v3"
+        },
+
+        _search_params: String,
+
+        _maxResults: {
+          type: Number,
+          value: 10
+        },
+
+      },
+
+      // LANGUAGE SUPPORT
+
+      _languageChanged: function(newVal, oldValue) {
+        switch(newVal){
+          case "es":
+            this.language = "es";
+            this._lan_file = "es_es.json"
+            break;
+          default:
+            this.language = "en";
+            this._lan_file = "en_en.json"
+        }
+        if (this.component_base || this.component_base == "") {
+          this.$.language_request.generateRequest();
         }
       },
 
-    },
+      _language_response: function(event, detail){
+        this.words = detail.response;
+      },
 
-    // Element Lifecycle
+      // TOKEN REFRESH
 
-    ready: function() {
-      // `ready` is called after all elements have been configured, but
-      // propagates bottom-up. This element's children are ready, but parents
-      // are not.
-      //
-      // This is the point where you should make modifications to the DOM (when
-      // necessary), or kick off any processes the element wants to perform.
-    },
+      _get_token_params: function(client_id, client_secret, refresh_token){
+        return {
+            client_id: client_id, 
+            client_secret: client_secret, 
+            refresh_token: refresh_token, 
+            grant_type: "refresh_token"
+          };
+      },
 
-    attached: function() {
-      // `attached` fires once the element and its parents have been inserted
-      // into a document.
-      //
-      // This is a good place to perform any work related to your element's
-      // visual state or active behavior (measuring sizes, beginning animations,
-      // loading resources, etc).
-    },
+      _token_received: function(event, detail){
+        this.token = detail.response.access_token;
+      },
 
-    detached: function() {
-      // The analog to `attached`, `detached` fires when the element has been
-      // removed from a document.
-      //
-      // Use this to clean up anything you did in `attached`.
-    },
+      // API METHODS
 
-    // Element Behavior
+      _search_response: function(event, detail){
+        console.log(detail.response);
+      },
 
-    /**
-     * The `youtube-wc-lasers` event is fired whenever `fireLasers` is called.
-     *
-     * @event youtube-wc-lasers
-     * @detail {{sound: String}}
-     */
+      // PUBLIC METHODS
 
-    /**
-     * Sometimes it's just nice to say hi.
-     *
-     * @param {string} greeting A positive greeting.
-     * @return {string} The full greeting.
-     */
-    sayHello: function(greeting) {
-      var response = greeting || 'Hello World!';
-      return 'youtube-wc says, ' + response;
-    },
+      search: function(){
+        this._search_params=
+        'part=snippet&'+
+        'key=' + this.api_key + '&' +
+        'q=' + this._keywords + '&' +
+        'maxResults=' + this._maxResults;
+        
 
-    /**
-     * Attempt to destroy this element's enemies with a beam of light!
-     *
-     * Or, at least, dispatch an event in the vain hope that someone else will
-     * do the zapping.
-     */
-    fireLasers: function() {
-      this.fire('youtube-wc-lasers', {sound: 'Pew pew!'});
-    }
+        this.$.search_request.generateRequest();
+      },
 
-  });
+      // Element Lifecycle
 
-</script>
+      ready: function() {
+        // `ready` is called after all elements have been configured, but
+        // propagates bottom-up. This element's children are ready, but parents
+        // are not.
+        //
+        // This is the point where you should make modifications to the DOM (when
+        // necessary), or kick off any processes the element wants to perform.
+      },
+
+      attached: function() {
+        // `attached` fires once the element and its parents have been inserted
+        // into a document.
+        //
+        // This is a good place to perform any work related to your element's
+        // visual state or active behavior (measuring sizes, beginning animations,
+        // loading resources, etc).
+        this.$['dropdown-content'].style.left="-105px";
+      },
+
+      detached: function() {
+        // The analog to `attached`, `detached` fires when the element has been
+        // removed from a document.
+        //
+        // Use this to clean up anything you did in `attached`.
+      },
+
+      // Element Behavior
+
+      toggle: function(){
+        if(this.$['dropdown-content'].style.left=="-105px"){
+          this.$['dropdown-content'].style.left="0";
+        }
+        else{
+          this.$['dropdown-content'].style.left="-105px";
+        }
+      },
+
+    });
+
+
+  </script>
+
+</dom-module>
