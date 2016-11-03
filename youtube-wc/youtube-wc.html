@@ -32,17 +32,15 @@ Example:
         display: block;
         min-width: 450px;
         min-height: 300px;        
-        width: 450px;
-        height: 300px;
-        max-width: 600px;
-        max-height: 400px;  
+        width: 600px;
+        height: 400px;
         background: var(--paper-grey-300);
         overflow: hidden;
         position: relative;
         
       }
 
-      .header{
+      .header, paper-header-panel{
         min-height: 60px;
         max-height: 60px;
         background: #ffffff;
@@ -55,7 +53,7 @@ Example:
         --iron-icon-height: 30px;
       }
 
-      .header paper-icon-button:hover{
+      paper-icon-button:hover{
         color: var(--paper-grey-900);
       }
 
@@ -71,8 +69,26 @@ Example:
       }
 
       .header .search-box{
-        margin-left: auto;
-        margin-right: auto;
+        position: absolute;
+        left: 125px;
+        top: 0;
+        height: 60px;
+        width: calc(100% - 125px);
+        text-align: center;
+      }
+
+      .search-box input{
+        width: 60%;
+      }
+
+      .search-box input{
+        margin-top: 19.5px;
+        margin-bottom: 19.5px;
+      }
+
+      .search-box paper-icon-button{
+        margin-top: 10px;
+        margin-bottom: 10px;
       }
 
       .dropdown-content{
@@ -96,7 +112,58 @@ Example:
       }
 
       .content{
+        overflow-y: scroll;
+        max-height: calc( 100% - 70px - 40px);
+        width: 100%;
+        position: relative;
+        margin-top: 10px;
+        color: var(--paper-grey-800);
+      }
 
+      .resul-item{
+        background: #ffffff;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 10px;
+        width: 90%;
+        min-height: 100px;
+        position: relative;
+      }
+
+      .thumbnail{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 129px;
+        height: 100px;
+      }
+
+      .info{
+        position: relative;
+        padding-left: calc(129px + 5px);
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-right: 5px;
+        word-wrap: break-word;
+      }
+
+      .info .result-title{
+        color: #167ac6;
+        font: 15px Roboto,arial,sans-serif;
+        font-weight: 500;
+      }
+
+      .info .result-channel, .result-description{
+        font: 12px Roboto,arial,sans-serif;
+      }
+
+      .footer{
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        color: var(--paper-grey-500);
+        text-align: center;
       }
   
     </style>
@@ -110,7 +177,7 @@ Example:
         <paper-icon-button icon="menu" class="menu" on-click="toggle"></paper-icon-button>
         <iron-icon src="resources/youtube.png" class="icon"></iron-icon>
         <div class="search-box">
-          <input is="iron-input" bind-value="{{_keywords}}">
+          <input is="iron-input" bind-value="{{_keywords}}" on-keydown="_check_search">
           <paper-icon-button icon="search" on-click="search"></paper-icon-button>
         </div>
       </paper-toolbar>
@@ -122,9 +189,18 @@ Example:
     </paper-menu>
     <!-- MAIN CONTENT -->
     <div class="content">
+      <template is="dom-repeat" items="[[_result.items]]">
+        <div class="resul-item">
+          <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
+          <div class="info">
+            <div class="result-title">{{item.snippet.title}}</div>
+            <div class="result-channel">{{item.snippet.channelTitle}}</div>
+            <div class="result-description">{{item.snippet.description}}</div>
+          </div>
+        </div>
+      </template>
     </div>
     <div class="footer">
-      <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
       <paper-icon-button icon="icons:arrow-back" on-click="before"></paper-icon-button>
       <span>{{cursor}}</span>
       <paper-icon-button icon="icons:arrow-forward"></paper-icon-button>
@@ -138,6 +214,12 @@ Example:
 
 
     <!-- AJAX CALLS -->
+    <iron-ajax
+      id="config_request"
+      url="{{config_file}}"
+      on-response="_config_response"
+      >
+    </iron-ajax>
 
     <iron-ajax
       id="language_request"
@@ -173,6 +255,8 @@ Example:
       properties: {
 
       //PUBLIC CONFIG PARAMS
+
+        config_file: String,
 
         /* Token: The access_token generated to grant access to the API */
         token: {
@@ -234,6 +318,12 @@ Example:
 
       },
 
+      //CONFIG
+
+      _config_response: function(event, detail){
+
+      },
+
       // LANGUAGE SUPPORT
 
       _languageChanged: function(newVal, oldValue) {
@@ -273,7 +363,7 @@ Example:
       // API METHODS
 
       _search_response: function(event, detail){
-        console.log(detail.response);
+        this._result = detail.response;
       },
 
       // PUBLIC METHODS
@@ -325,6 +415,13 @@ Example:
         }
         else{
           this.$['dropdown-content'].style.left="-105px";
+        }
+      },
+
+      /* Allow search typing ENTER */
+      _check_search: function(e){
+        if(e.keyCode === 13){
+          this.search();
         }
       },
 
