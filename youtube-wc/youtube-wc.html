@@ -113,7 +113,7 @@ Example:
 
       .content{
         overflow-y: scroll;
-        max-height: calc( 100% - 70px - 40px);
+        max-height: calc( 100% - 95px);
         width: 100%;
         position: relative;
         margin-top: 10px;
@@ -162,8 +162,16 @@ Example:
         position: absolute;
         bottom: 0;
         width: 100%;
-        color: var(--paper-grey-500);
+        max-height: 25px;
+        color: var(--paper-grey-900);
+        background: #ffffff;
         text-align: center;
+      }
+
+      .footer paper-icon-button{
+        padding-top: 1px;
+        padding-bottom: 1px;
+        max-height: 25px;
       }
   
     </style>
@@ -174,7 +182,7 @@ Example:
     <!-- HEADER -->
     <paper-header-panel mode="seamed">
       <paper-toolbar class="header">
-        <paper-icon-button icon="menu" class="menu" on-click="toggle"></paper-icon-button>
+        <paper-icon-button icon="menu" class="menu" on-click="_toggle"></paper-icon-button>
         <iron-icon src="resources/youtube.png" class="icon"></iron-icon>
         <div class="search-box">
           <input is="iron-input" bind-value="{{_keywords}}" on-keydown="_check_search">
@@ -189,7 +197,7 @@ Example:
     </paper-menu>
     <!-- MAIN CONTENT -->
     <div class="content">
-      <template is="dom-repeat" items="[[_result.items]]">
+      <template id="results_template" is="dom-repeat" items="[[_result.items]]">
         <div class="resul-item">
           <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
           <div class="info">
@@ -200,10 +208,10 @@ Example:
         </div>
       </template>
     </div>
-    <div class="footer">
-      <paper-icon-button icon="icons:arrow-back" on-click="before"></paper-icon-button>
-      <span>{{cursor}}</span>
-      <paper-icon-button icon="icons:arrow-forward"></paper-icon-button>
+    <div id="footer" class="footer" hidden="true">
+      <paper-icon-button icon="icons:arrow-back" on-click="_before"></paper-icon-button>
+      <span>{{_cursor}}</span>
+      <paper-icon-button icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
     </div>
 
 
@@ -291,30 +299,37 @@ Example:
 
       //INTERNAL CONFIG PARAMS
 
-        /* Language */
-
-        _lan_file: String,
-
         /* Token refresh */
 
-        _token_params:{
+        _token_params: {
           type: String,
           computed: "_get_token_params(client_id, client_secret, refresh_token)"
         },
 
         /* API methods */
 
-        _base_URL:{
+        _base_URL: {
           type: String,
           value: "https://www.googleapis.com/youtube/v3"
         },
-
-        _search_params: String,
 
         _maxResults: {
           type: Number,
           value: 10
         },
+
+        /* Pagination */
+
+        _cursor: {
+          type: Number,
+          value: 0,
+        },
+
+        _cache: {
+          type: Object,
+          value: [],
+        },
+
 
       },
 
@@ -375,8 +390,74 @@ Example:
         'q=' + this._keywords + '&' +
         'maxResults=' + this._maxResults;
         
-
+        this._last_search = this._keywords;
         this.$.search_request.generateRequest();
+        if(this.$.footer.hidden)this.$.footer.hidden=false;
+      },
+
+      _search_next: function(){
+        if(this._last_search && this._cache[this._cursor].nextPageToken){
+          this._search_params=
+          'part=snippet&'+
+          'key=' + this.api_key + '&' +
+          'q=' + this._last_search + '&' +
+          'maxResults=' + this._maxResults + '&' +
+          'pageToken=' + this._cache[this._cursor].nextPageToken;
+          
+          this.$.search_request.generateRequest();
+        }
+      },
+
+      // ELEMENT BEHAVIOUR
+
+      /* Pagination */
+
+      _clear: function(){
+        this._result = null;
+        this.$.results_template.render();
+      },
+
+      _next: function(){
+        if(this._cache[this._cursor+1]){
+          this._clear();
+          this._result = this._cache[this._cursor+1];
+        }
+        else{
+          //this._cache[this._cursor] = {};
+          this._cache[this._cursor] = this._result;
+          this._clear();
+          this._search_next();
+        }        
+        this._cursor++;
+      },
+
+      _before: function(){
+        if(this._cursor > 0){
+          if(!this._cache[this._cursor]){
+            //this._cache[this._cursor] = {};
+            this._cache[this._cursor] = this._result;
+          }          
+          this._cursor--;
+          this._clear();
+          this._result = this._cache[this._cursor];
+        }        
+      },
+
+      /* Side Menu animation */
+      _toggle: function(){
+        if(this.$['dropdown-content'].style.left=="-105px"){
+          this.$['dropdown-content'].style.left="0";
+        }
+        else{
+          this.$['dropdown-content'].style.left="-105px";
+        }
+      },
+
+      /* Allow search typing ENTER */
+      _check_search: function(e){
+        if(e.keyCode === 13){
+          this.search();
+        }
       },
 
       // Element Lifecycle
@@ -405,24 +486,6 @@ Example:
         // removed from a document.
         //
         // Use this to clean up anything you did in `attached`.
-      },
-
-      // Element Behavior
-
-      toggle: function(){
-        if(this.$['dropdown-content'].style.left=="-105px"){
-          this.$['dropdown-content'].style.left="0";
-        }
-        else{
-          this.$['dropdown-content'].style.left="-105px";
-        }
-      },
-
-      /* Allow search typing ENTER */
-      _check_search: function(e){
-        if(e.keyCode === 13){
-          this.search();
-        }
       },
 
     });
