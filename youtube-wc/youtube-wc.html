@@ -22,6 +22,7 @@ Example:
 <link rel="import" href="../paper-toolbar/paper-toolbar.html">
 <link rel="import" href="../paper-menu/paper-menu.html">
 <link rel="import" href="../paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../google-youtube/google-youtube.html">
 
 <dom-module id="youtube-wc">
 
@@ -31,9 +32,9 @@ Example:
       :host {
         display: block;
         min-width: 450px;
-        min-height: 300px;        
-        width: 600px;
-        height: 400px;
+        min-height: 350px;        
+        width: 450px;
+        height: 350px;
         background: var(--paper-grey-300);
         overflow: hidden;
         position: relative;
@@ -113,7 +114,7 @@ Example:
 
       .content{
         overflow-y: scroll;
-        max-height: calc( 100% - 95px);
+        max-height: calc( 100% - 70px);
         width: 100%;
         position: relative;
         margin-top: 10px;
@@ -129,6 +130,7 @@ Example:
         width: 90%;
         min-height: 100px;
         position: relative;
+        cursor: pointer;
       }
 
       .thumbnail{
@@ -148,7 +150,7 @@ Example:
         word-wrap: break-word;
       }
 
-      .info .result-title{
+      .result-title{
         color: #167ac6;
         font: 15px Roboto,arial,sans-serif;
         font-weight: 500;
@@ -159,8 +161,7 @@ Example:
       }
 
       .footer{
-        position: absolute;
-        bottom: 0;
+        position: relative;
         width: 100%;
         max-height: 25px;
         color: var(--paper-grey-900);
@@ -172,6 +173,40 @@ Example:
         padding-top: 1px;
         padding-bottom: 1px;
         max-height: 25px;
+      }
+
+      .content2{
+        max-height: calc( 100% - 60px);
+        margin-top: 0px;
+        color: var(--paper-grey-800);
+      }
+
+      .video{
+        background: #000000;
+      }
+
+      .video ::shadow #container{
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .video-stats{
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        background: #ffffff;
+        color: var(--paper-grey-900);
+        padding: 10px;
+      }
+
+      .detail-title{        
+        font: 24px Roboto,arial,sans-serif;
+      }
+
+      .channel-img{
+        width: 60px;
+        height: 60px;
       }
   
     </style>
@@ -196,9 +231,9 @@ Example:
       <paper-button raised class="item">Opcion 3</paper-button>
     </paper-menu>
     <!-- MAIN CONTENT -->
-    <div class="content">
+    <div class="content" hidden="{{_view_detail}}">
       <template id="results_template" is="dom-repeat" items="[[_result.items]]">
-        <div class="resul-item">
+        <div class="resul-item" on-click="detail">
           <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
           <div class="info">
             <div class="result-title">{{item.snippet.title}}</div>
@@ -207,12 +242,26 @@ Example:
           </div>
         </div>
       </template>
+      <div id="footer" class="footer" hidden="true">
+        <paper-icon-button icon="icons:arrow-back" on-click="_before"></paper-icon-button>
+        <span>{{_cursor}}</span>
+        <paper-icon-button icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
+      </div>
     </div>
-    <div id="footer" class="footer" hidden="true">
-      <paper-icon-button icon="icons:arrow-back" on-click="_before"></paper-icon-button>
-      <span>{{_cursor}}</span>
-      <paper-icon-button icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
-    </div>
+  <div class="content content2" hidden="{{!_view_detail}}">
+    <template id="detail" is="dom-if" if="_view_detail">   
+      <google-youtube class="video"
+        video-id="{{item.id.videoId}}">
+      </google-youtube>
+      <div class="video-stats">
+        <div class="detail-title">{{item.snippet.title}}</div>
+        <div class="detail-channel">{{item.snippet.channelTitle}}</div>   
+        <img class="channel-img" src="{{channel.snippet.thumbnails.default.url}}">
+      </div>      
+    </template>
+  </div>
+    
+    
 
 
 
@@ -249,6 +298,13 @@ Example:
        id="search_request" 
        url="{{_base_URL}}/search?{{_search_params}}" 
        on-response="_search_response"
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="channel_request" 
+       url="{{_base_URL}}/channels?part=snippet&key={{api_key}}&id={{item.snippet.channelId}}" 
+       on-response="_channel_response"
        >
     </iron-ajax>
     
@@ -330,6 +386,13 @@ Example:
           value: [],
         },
 
+        /* View */
+
+        _view_detail: {
+          type: Boolean,
+          value: false
+        },
+
 
       },
 
@@ -381,10 +444,22 @@ Example:
         this._result = detail.response;
       },
 
+      _channel_response: function(event, detail){
+        this.channel = detail.response.items[0];
+        this._view_detail = true;
+      },
+
       // PUBLIC METHODS
 
       search: function(){
-        this._search_params=
+        //Clear window and params
+        this._view_detail = false;
+        if(this.$.footer.hidden)this.$.footer.hidden = false;
+        this._cache = [];
+        this._cursor = 0;
+
+        //Generate request
+        this._search_params =
         'part=snippet&'+
         'key=' + this.api_key + '&' +
         'q=' + this._keywords + '&' +
@@ -392,12 +467,11 @@ Example:
         
         this._last_search = this._keywords;
         this.$.search_request.generateRequest();
-        if(this.$.footer.hidden)this.$.footer.hidden=false;
       },
 
       _search_next: function(){
         if(this._last_search && this._cache[this._cursor].nextPageToken){
-          this._search_params=
+          this._search_params =
           'part=snippet&'+
           'key=' + this.api_key + '&' +
           'q=' + this._last_search + '&' +
@@ -423,7 +497,6 @@ Example:
           this._result = this._cache[this._cursor+1];
         }
         else{
-          //this._cache[this._cursor] = {};
           this._cache[this._cursor] = this._result;
           this._clear();
           this._search_next();
@@ -434,7 +507,6 @@ Example:
       _before: function(){
         if(this._cursor > 0){
           if(!this._cache[this._cursor]){
-            //this._cache[this._cursor] = {};
             this._cache[this._cursor] = this._result;
           }          
           this._cursor--;
@@ -458,6 +530,13 @@ Example:
         if(e.keyCode === 13){
           this.search();
         }
+      },
+
+      /* Detail view */
+      detail: function(e){
+        this.item = e.model.item;
+        this.$.channel_request.generateRequest();
+        this.$.footer.hidden=true;
       },
 
       // Element Lifecycle
