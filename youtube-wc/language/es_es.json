@@ -1,3 +1,12 @@
 {
-	"title": "Bienvenido a PicBit"
+	"title": "Bienvenido a PicBit",
+	"today": "Hoy",
+	"day": "día",
+	"days": "días",
+	"month": "mes",
+	"months": "meses",
+	"year": "año",
+	"years": "años",
+	"published": "Hace",
+	"ago": ""
 }

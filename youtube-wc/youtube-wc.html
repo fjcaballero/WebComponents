@@ -33,8 +33,8 @@ Example:
         display: block;
         min-width: 450px;
         min-height: 350px;        
-        width: 600px;
-        height: 400px;
+        width: 450px;
+        height: 350px;
         background: var(--paper-grey-300);
         overflow: hidden;
         position: relative;
@@ -90,6 +90,11 @@ Example:
       .search-box paper-icon-button{
         margin-top: 10px;
         margin-bottom: 10px;
+      }
+
+      .back{
+        position: absolute;
+        right: 10px;
       }
 
       .dropdown-content{
@@ -277,6 +282,7 @@ Example:
         <div class="search-box">
           <input is="iron-input" bind-value="{{_keywords}}" on-keydown="_check_search">
           <paper-icon-button icon="search" on-click="search"></paper-icon-button>
+          <paper-icon-button class="back" icon="icons:undo" on-click="_back" hidden="{{!_view_detail}}"></paper-icon-button>
         </div>
       </paper-toolbar>
     </paper-header-panel>
@@ -293,6 +299,7 @@ Example:
           <div class="info">
             <div class="result-title">{{item.snippet.title}}</div>
             <div class="result-channel">{{item.snippet.channelTitle}}</div>
+            <div class="result-channel">{{_getDate(item)}}</div>
             <div class="result-description">{{item.snippet.description}}</div>
           </div>
         </div>
@@ -604,7 +611,33 @@ Example:
       detail: function(e){
         this.item = e.model.item;
         this.$.channel_request.generateRequest();
-        this.$.footer.hidden=true;
+        this.$.footer.hidden = true;
+      },
+
+      /* Results view */
+      _back: function(){
+        this._view_detail = false;
+        this.$.footer.hidden = false;
+        this.item = {};
+      },
+
+      _getDate: function(item){
+        var d = new Date(item.snippet.publishedAt);
+        var diff = new Date() - d;
+        diff = Math.floor(diff/(1000*60*60*24));
+        var out = "";
+        if(diff == 0)out = this.words.today;
+        else{
+          if(diff == 1)out = 1 +' '+ this.words.day;
+          else if(30 > diff && diff > 1)out = diff +' '+ this.words.days;
+          else if(60 > diff && diff >= 30)out = Math.floor(diff/30) +' '+ this.words.month;
+          else if(365 > diff && diff >= 60)out = Math.floor(diff/30) +' '+ this.words.months;
+          else if(730 > diff && diff >= 365)out = Math.floor(diff/365) +' '+ this.words.year;
+          else if(diff >= 730)out = Math.floor(diff/365) +' '+ this.words.years;
+          out = this.words.published +' '+ out +' '+ this.words.ago;
+        }
+        console.log(out, diff);
+        return out;
       },
 
       // Element Lifecycle
