@@ -237,7 +237,7 @@ Example:
 
       .content2{
         max-height: calc( 100% - 60px);
-        margin-top: 0px;
+        padding-top: 0px;
         color: var(--paper-grey-800);
       }
 
@@ -251,7 +251,7 @@ Example:
         margin-right: auto;
       }
 
-      .video-stats{
+      .video-stats, .comments{
         max-width: 90%;
         margin-left: auto;
         margin-right: auto;
@@ -260,13 +260,61 @@ Example:
         padding: 10px;
       }
 
+      .channel-stats{
+        position: relative;
+        margin-top: 10px;
+        min-height: 60px;
+        padding-left: 70px;
+        max-width: calc(100% - 70px);
+      }
+
       .detail-title{        
         font: 24px Roboto,arial,sans-serif;
       }
 
+      .detail-channel{
+      }
+
       .channel-img{
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 60px;
         height: 60px;
+      }
+
+      .comments{
+        margin-top: 10px;
+      }
+
+      .comment{
+        position: relative;
+        margin-bottom: 20px;
+        min-height: 50px;
+      }
+
+      .comment-img{
+        position: absolute;
+        margin-top: 2px;
+        top: 0;
+        left: 0;
+        width: 50px;
+        height: 50px;
+      }
+
+      .comment-name, .comment-text{
+        padding-left: 60px;
+        max-width: calc(100% - 70px);
+        font: 15px Roboto,arial,sans-serif;
+      }
+
+      .comment-name{
+        color: #167ac6;
+        font-weight: 500;
+      }
+
+      .comment-text{
+
       }
   
     </style>
@@ -293,7 +341,7 @@ Example:
     </paper-menu>
     <!-- MAIN CONTENT -->
     <div class="content" hidden="{{_view_detail}}">
-      <template id="results_template" is="dom-repeat" items="[[_result.items]]">
+      <template id="results_template" is="dom-repeat" items="[[result.items]]">
         <div class="resul-item" on-click="detail">
           <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
           <div class="info">
@@ -308,14 +356,31 @@ Example:
     </div>
   <div class="content content2" hidden="{{!_view_detail}}">
     <template id="detail" is="dom-if" if="_view_detail">   
+
       <google-youtube class="video"
         video-id="{{item.id.videoId}}">
       </google-youtube>
+
       <div class="video-stats">
         <div class="detail-title">{{item.snippet.title}}</div>
-        <div class="detail-channel">{{item.snippet.channelTitle}}</div>   
-        <img class="channel-img" src="{{channel.snippet.thumbnails.default.url}}">
-      </div>      
+        <div class="channel-stats">
+          <img class="channel-img" src="{{channel.snippet.thumbnails.default.url}}">
+          <div class="detail-channel">{{item.snippet.channelTitle}}</div>   
+        </div>
+      </div>
+
+      <div class="comments">
+        {{words.comments}}
+        <hr>
+        <template is="dom-repeat" items="[[comments]]">
+          <div class="comment">
+            <img class="comment-img" src="{{item.snippet.topLevelComment.snippet.authorProfileImageUrl}}">
+            <div class="comment-name">{{item.snippet.topLevelComment.snippet.authorDisplayName}}</div>
+            <div class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
+          </div>
+        </template>
+      </div>  
+
     </template>
   </div>
   <div id="footer" class="footer" hidden="true">
@@ -374,7 +439,19 @@ Example:
        on-response="_channel_response"
        >
     </iron-ajax>
-    
+
+    <iron-ajax
+      id="comments_request"
+      url="https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=relevance&maxResults=10&videoId={{item.id.videoId}}&key={{api_key}}"
+      on-response="_comments_response"
+    >
+    </iron-ajax>
+
+    <iron-ajax
+    id="cache_image"
+    url="{{image_url}}"
+    >
+    </iron-ajax>
   </template>
 
   <script>
@@ -508,12 +585,20 @@ Example:
       // API METHODS
 
       _search_response: function(event, detail){
-        this._result = detail.response;
+        this.result = detail.response;
       },
 
       _channel_response: function(event, detail){
         this.channel = detail.response.items[0];
         this._view_detail = true;
+      },
+
+      _comments_response: function(event, detail){
+        this.comments = detail.response.items;
+        for(var i=0; i<this.comments.length; i++){
+          this.image_url = this.comments[i].snippet.topLevelComment.snippet.authorProfileImageUrl;
+          this.$.cache_image.generateRequest();
+        }
       },
 
       // PUBLIC METHODS
@@ -554,17 +639,17 @@ Example:
       /* Pagination */
 
       _clear: function(){
-        this._result = null;
+        this.result = null;
         this.$.results_template.render();
       },
 
       _next: function(){
         if(this._cache[this._cursor+1]){
           this._clear();
-          this._result = this._cache[this._cursor+1];
+          this.result = this._cache[this._cursor+1];
         }
         else{
-          this._cache[this._cursor] = this._result;
+          this._cache[this._cursor] = this.result;
           this._clear();
           this._search_next();
         }        
@@ -577,14 +662,14 @@ Example:
       _before: function(){
         if(this._cursor > 0){
           if(!this._cache[this._cursor]){
-            this._cache[this._cursor] = this._result;
+            this._cache[this._cursor] = this.result;
           }          
           this._cursor--;
           if(this._cursor == 9){
             this.$['square'].style.width="50px";
           }
           this._clear();
-          this._result = this._cache[this._cursor];
+          this.result = this._cache[this._cursor];
 
         }
 
@@ -611,6 +696,7 @@ Example:
       detail: function(e){
         this.item = e.model.item;
         this.$.channel_request.generateRequest();
+        this.$.comments_request.generateRequest();
         this.$.footer.hidden = true;
       },
 
@@ -634,9 +720,8 @@ Example:
           else if(365 > diff && diff >= 60)out = Math.floor(diff/30) +' '+ this.words.months;
           else if(730 > diff && diff >= 365)out = Math.floor(diff/365) +' '+ this.words.year;
           else if(diff >= 730)out = Math.floor(diff/365) +' '+ this.words.years;
-          out = this.words.published +' '+ out +' '+ this.words.ago;
+          out = this.words.published + out + this.words.ago;
         }
-        console.log(out, diff);
         return out;
       },
 
