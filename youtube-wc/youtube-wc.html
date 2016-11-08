@@ -13,7 +13,6 @@ Example:
 -->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
-<link rel="import" href="../iron-input/iron-input.html">
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../iron-icons/iron-icons.html">
 <link rel="import" href="../iron-icons/av-icons.html">
@@ -313,8 +312,8 @@ Example:
         font-weight: 500;
       }
 
-      .comment-text{
-
+      .comment-area{
+        max-width: calc(100% - 7px);
       }
   
     </style>
@@ -328,7 +327,7 @@ Example:
         <paper-icon-button icon="menu" class="menu" on-click="_toggle"></paper-icon-button>
         <iron-icon src="resources/youtube.png" class="icon"></iron-icon>
         <div class="search-box">
-          <input is="iron-input" bind-value="{{_keywords}}" on-keydown="_check_search">
+          <input value="{{_keywords::input}}" on-keydown="_check_search">
           <paper-icon-button icon="search" on-click="search"></paper-icon-button>
           <paper-icon-button class="back" icon="icons:undo" on-click="_back" hidden="{{!_view_detail}}"></paper-icon-button>
         </div>
@@ -371,6 +370,8 @@ Example:
 
       <div class="comments">
         {{words.comments}}
+        <textarea class="comment-area" rows="4" cols="50" value="{{commentText::input}}" on-keydown="_check_comment">
+        </textarea>
         <hr>
         <template is="dom-repeat" items="[[comments]]">
           <div class="comment">
@@ -392,23 +393,9 @@ Example:
     <paper-icon-button class="next" icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
     
   </div>
-    
-    
-
-
-
-
-
-
 
 
     <!-- AJAX CALLS -->
-    <iron-ajax
-      id="config_request"
-      url="{{config_file}}"
-      on-response="_config_response"
-      >
-    </iron-ajax>
 
     <iron-ajax
       id="language_request"
@@ -442,16 +429,26 @@ Example:
 
     <iron-ajax
       id="comments_request"
-      url="https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=relevance&maxResults=10&videoId={{item.id.videoId}}&key={{api_key}}"
+      url="{{_base_URL}}/commentThreads?part=snippet&order=relevance&maxResults=10&videoId={{item.id.videoId}}&key={{api_key}}"
       on-response="_comments_response"
-    >
+      >
     </iron-ajax>
 
     <iron-ajax
-    id="cache_image"
-    url="{{image_url}}"
-    >
+      id="cache_image"
+      url="{{image_url}}"
+      >
     </iron-ajax>
+
+    <iron-ajax
+      id="post_comment"
+      method="POST"
+      url="{{_base_URL}}/commentThreads?part=id"
+      headers="{{_api_headers}}"
+      params="{{_post_params}}"
+      >
+    <iron-ajax>
+
   </template>
 
   <script>
@@ -463,8 +460,6 @@ Example:
       properties: {
 
       //PUBLIC CONFIG PARAMS
-
-        config_file: String,
 
         /* Token: The access_token generated to grant access to the API */
         token: {
@@ -508,6 +503,16 @@ Example:
 
         /* API methods */
 
+        _api_headers: {
+          type: String,
+          computed: "_get_api_headers(token)"
+        },
+
+        _post_params: {
+          type: String,
+          computed: "_get_post_params(channelId, videoId, commentText)"
+        },
+
         _base_URL: {
           type: String,
           value: "https://www.googleapis.com/youtube/v3"
@@ -537,12 +542,6 @@ Example:
           value: false
         },
 
-
-      },
-
-      //CONFIG
-
-      _config_response: function(event, detail){
 
       },
 
@@ -583,6 +582,18 @@ Example:
       },
 
       // API METHODS
+
+      _get_api_headers: function(token){
+        return {Authorization: 'Bearer '+token};
+      },
+
+      _get_post_params: function(channelId, videoId, commentText){
+        return {
+          "snippet.channelId": channelId,
+          "snippet.videoId": videoId,
+          "snippet.topLevelComment.snippet.textOriginal": commentText
+        }
+      }, 
 
       _search_response: function(event, detail){
         this.result = detail.response;
@@ -632,6 +643,12 @@ Example:
           
           this.$.search_request.generateRequest();
         }
+      },
+
+      comment: function(){
+        this.channelId = this.channel.id;
+        this.videoId = this.item.id.videoId;
+        this.$.post_comment.generateRequest();
       },
 
       // ELEMENT BEHAVIOUR
@@ -689,6 +706,13 @@ Example:
       _check_search: function(e){
         if(e.keyCode === 13){
           this.search();
+        }
+      },
+
+      /* Allow comment typing ENTER */
+      _check_comment: function(e){
+        if(e.keyCode === 13){
+          this.comment();
         }
       },
 
