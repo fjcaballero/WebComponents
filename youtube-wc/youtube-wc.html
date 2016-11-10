@@ -314,6 +314,29 @@ Example:
 
       .comment-area{
         max-width: calc(100% - 7px);
+        font: 15px Roboto,arial,sans-serif;
+      }
+
+      .comment_button, .cancel_button{
+        margin: 0 0 5px 5px;
+        float: right;
+        text-transform: none;
+        font: 11px Roboto,arial,sans-serif;
+        border-radius: 3px;
+        background-color: var(--paper-grey-200);
+      }
+
+      .comment_button{
+        background-color: #167ac6;
+        color: #ffffff;
+      }
+
+      .comment_button[disabled]{
+        opacity: .5;
+      }
+
+      .comments hr{
+        clear: right;
       }
   
     </style>
@@ -370,8 +393,9 @@ Example:
 
       <div class="comments">
         {{words.comments}}
-        <textarea class="comment-area" rows="4" cols="50" value="{{commentText::input}}" on-keydown="_check_comment">
-        </textarea>
+        <textarea class="comment-area" rows="4" cols="50" value="{{commentText::input}}" on-keydown="_check_comment"></textarea>
+        <paper-button raised disabled="{{commentDisabled}}" class="comment_button" id="comment_button" on-click="comment" hidden="{{hideCommentButtons}}">{{words.comment}}</paper-button>
+        <paper-button raised class="cancel_button" id="cancel_button" on-click="cancel_comment" hidden="{{hideCommentButtons}}">{{words.cancel}}</paper-button>
         <hr>
         <template is="dom-repeat" items="[[comments]]">
           <div class="comment">
@@ -443,9 +467,11 @@ Example:
     <iron-ajax
       id="post_comment"
       method="POST"
-      url="{{_base_URL}}/commentThreads?part=id"
+      url="{{_base_URL}}/commentThreads?part=snippet"
       headers="{{_api_headers}}"
-      params="{{_post_params}}"
+      content-type="application/json"
+      body="{{_post_params}}"
+      on-response="_post_response"
       >
     <iron-ajax>
 
@@ -493,6 +519,11 @@ Example:
         },
 
       //INTERNAL CONFIG PARAMS
+
+        commentText: {
+          type: String,
+          observer: "commentText_changed"
+        },
 
         /* Token refresh */
 
@@ -589,9 +620,15 @@ Example:
 
       _get_post_params: function(channelId, videoId, commentText){
         return {
-          "snippet.channelId": channelId,
-          "snippet.videoId": videoId,
-          "snippet.topLevelComment.snippet.textOriginal": commentText
+          snippet: {
+            channelId: channelId,
+            videoId: videoId,
+            topLevelComment: {
+              snippet: {
+                textOriginal: commentText
+              }
+            }
+          }
         }
       }, 
 
@@ -609,6 +646,13 @@ Example:
         for(var i=0; i<this.comments.length; i++){
           this.image_url = this.comments[i].snippet.topLevelComment.snippet.authorProfileImageUrl;
           this.$.cache_image.generateRequest();
+        }
+      },
+
+      _post_response: function(event, detail){
+        if(detail.response.snippet){
+          this.push('comments',detail.response);
+          this.commentText = '';
         }
       },
 
@@ -649,6 +693,7 @@ Example:
         this.channelId = this.channel.id;
         this.videoId = this.item.id.videoId;
         this.$.post_comment.generateRequest();
+        this.hideCommentButtons=true;
       },
 
       // ELEMENT BEHAVIOUR
@@ -711,9 +756,19 @@ Example:
 
       /* Allow comment typing ENTER */
       _check_comment: function(e){
-        if(e.keyCode === 13){
-          this.comment();
+        if(this.hideCommentButtons)this.hideCommentButtons=false;
+      },
+
+      commentText_changed: function(e){
+        if(this.commentText.length==0)this.commentDisabled=true;
+        else{
+          this.commentDisabled=false;
         }
+      },
+
+      cancel_comment: function(){
+        this.commentText = '';
+        this.hideCommentButtons=true;
       },
 
       /* Detail view */
@@ -722,6 +777,8 @@ Example:
         this.$.channel_request.generateRequest();
         this.$.comments_request.generateRequest();
         this.$.footer.hidden = true;
+        this.hideCommentButtons=true;
+        this.commentText = '';
       },
 
       /* Results view */
