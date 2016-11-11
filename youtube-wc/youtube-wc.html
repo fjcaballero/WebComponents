@@ -23,6 +23,9 @@ Example:
 <link rel="import" href="../paper-header-panel/paper-header-panel.html">
 <link rel="import" href="../google-youtube/google-youtube.html">
 
+<!-- Jsonp request https://github.com/coderfin/byutv-jsonp -->
+<link rel="import" href="../byutv-jsonp/byutv-jsonp.html" />
+
 <dom-module id="youtube-wc">
 
   <template>
@@ -458,11 +461,12 @@ Example:
       >
     </iron-ajax>
 
-    <iron-ajax
-      id="cache_image"
-      url="{{image_url}}"
-      >
-    </iron-ajax>
+    <byutv-jsonp
+        id="cache_image"
+        url="{{image_url}}"
+        >
+    </byutv-jsonp>
+
 
     <iron-ajax
       id="post_comment"
@@ -645,8 +649,9 @@ Example:
         this.comments = detail.response.items;
         for(var i=0; i<this.comments.length; i++){
           this.image_url = this.comments[i].snippet.topLevelComment.snippet.authorProfileImageUrl;
-          this.$.cache_image.generateRequest();
+          if(!this.$.cache_image.auto)this.$.cache_image.auto=true;
         }
+        
       },
 
       _post_response: function(event, detail){
