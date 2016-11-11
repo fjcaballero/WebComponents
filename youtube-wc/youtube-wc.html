@@ -23,9 +23,6 @@ Example:
 <link rel="import" href="../paper-header-panel/paper-header-panel.html">
 <link rel="import" href="../google-youtube/google-youtube.html">
 
-<!-- Jsonp request https://github.com/coderfin/byutv-jsonp -->
-<link rel="import" href="../byutv-jsonp/byutv-jsonp.html" />
-
 <dom-module id="youtube-wc">
 
   <template>
@@ -343,10 +340,7 @@ Example:
       }
   
     </style>
-    <!--
-    <input is="iron-input" bind-value="{{_keywords}}">
-    <paper-button raised on-click="search">SEARCH</paper-button>
-    -->
+
     <!-- HEADER -->
     <paper-header-panel mode="seamed">
       <paper-toolbar class="header">
@@ -367,7 +361,7 @@ Example:
     <!-- MAIN CONTENT -->
     <div class="content" hidden="{{_view_detail}}">
       <template id="results_template" is="dom-repeat" items="[[result.items]]">
-        <div class="resul-item" on-click="detail">
+        <div class="resul-item" on-click="_detail">
           <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
           <div class="info">
             <div class="result-title">{{item.snippet.title}}</div>
@@ -398,13 +392,16 @@ Example:
         {{words.comments}}
         <textarea class="comment-area" rows="4" cols="50" value="{{commentText::input}}" on-keydown="_check_comment"></textarea>
         <paper-button raised disabled="{{commentDisabled}}" class="comment_button" id="comment_button" on-click="comment" hidden="{{hideCommentButtons}}">{{words.comment}}</paper-button>
-        <paper-button raised class="cancel_button" id="cancel_button" on-click="cancel_comment" hidden="{{hideCommentButtons}}">{{words.cancel}}</paper-button>
+        <paper-button raised class="cancel_button" id="cancel_button" on-click="_cancel_comment" hidden="{{hideCommentButtons}}">{{words.cancel}}</paper-button>
         <hr>
         <template is="dom-repeat" items="[[comments]]">
           <div class="comment">
-            <img class="comment-img" src="{{item.snippet.topLevelComment.snippet.authorProfileImageUrl}}">
+            <object class="comment-img" data="{{item.snippet.topLevelComment.snippet.authorProfileImageUrl}}" type="image/jpg">
+              <img class="comment-img" src="resources/default.png">
+            </object>
+            
             <div class="comment-name">{{item.snippet.topLevelComment.snippet.authorDisplayName}}</div>
-            <div class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
+            <div id="comment_{{index}}" class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
           </div>
         </template>
       </div>  
@@ -432,26 +429,17 @@ Example:
     </iron-ajax>
 
     <iron-ajax
-       id="refresh_token" 
-       url="https://accounts.google.com/o/oauth2/token" 
-       method="POST"
-       params="{{_token_params}}" 
-       on-response="_token_received"
-       >
+      id="search_request" 
+      url="{{_base_URL}}/search?{{_search_params}}" 
+      on-response="_search_response"
+      >
     </iron-ajax>
 
     <iron-ajax
-       id="search_request" 
-       url="{{_base_URL}}/search?{{_search_params}}" 
-       on-response="_search_response"
-       >
-    </iron-ajax>
-
-    <iron-ajax
-       id="channel_request" 
-       url="{{_base_URL}}/channels?part=snippet&key={{api_key}}&id={{item.snippet.channelId}}" 
-       on-response="_channel_response"
-       >
+      id="channel_request" 
+      url="{{_base_URL}}/channels?part=snippet&key={{api_key}}&id={{item.snippet.channelId}}" 
+      on-response="_channel_response"
+      >
     </iron-ajax>
 
     <iron-ajax
@@ -460,13 +448,6 @@ Example:
       on-response="_comments_response"
       >
     </iron-ajax>
-
-    <byutv-jsonp
-        id="cache_image"
-        url="{{image_url}}"
-        >
-    </byutv-jsonp>
-
 
     <iron-ajax
       id="post_comment"
@@ -489,7 +470,7 @@ Example:
 
       properties: {
 
-      //PUBLIC CONFIG PARAMS
+      /********************** PUBLIC CONFIG PARAMS ************************/
 
         /* Token: The access_token generated to grant access to the API */
         token: {
@@ -497,17 +478,11 @@ Example:
           reflectToAttribute: true
         },
 
-        /* Refresh Token: The refresh token generated to update the access_token */
-        refresh_token: String,
-
         /* API Key: The API Key for your application */
         api_key: String,
 
         /* Client Id: The OAuth 2.0 client ID for your application */
         client_id: String,
-
-        /* Client Secret: The OAuth 2.0 client SECRET for your application */
-        client_secret: String,
 
         /* Component Base: The component base directory */
         component_base: {
@@ -522,18 +497,12 @@ Example:
           observer: "_languageChanged"
         },
 
-      //INTERNAL CONFIG PARAMS
+
+      /*********************** INTERNAL CONFIG PARAMS ***********************/
 
         commentText: {
           type: String,
-          observer: "commentText_changed"
-        },
-
-        /* Token refresh */
-
-        _token_params: {
-          type: String,
-          computed: "_get_token_params(client_id, client_secret, refresh_token)"
+          observer: "_commentText_changed"
         },
 
         /* API methods */
@@ -580,6 +549,8 @@ Example:
 
       },
 
+      /*_______________________________ FUNCTIONS ________________________________*/
+
       // LANGUAGE SUPPORT
 
       _languageChanged: function(newVal, oldValue) {
@@ -601,22 +572,7 @@ Example:
         this.words = detail.response;
       },
 
-      // TOKEN REFRESH
-
-      _get_token_params: function(client_id, client_secret, refresh_token){
-        return {
-            client_id: client_id, 
-            client_secret: client_secret, 
-            refresh_token: refresh_token, 
-            grant_type: "refresh_token"
-          };
-      },
-
-      _token_received: function(event, detail){
-        this.token = detail.response.access_token;
-      },
-
-      // API METHODS
+      /********************************* API METHODS *********************************/
 
       _get_api_headers: function(token){
         return {Authorization: 'Bearer '+token};
@@ -634,7 +590,9 @@ Example:
             }
           }
         }
-      }, 
+      },
+
+      // RESPONSES
 
       _search_response: function(event, detail){
         this.result = detail.response;
@@ -647,11 +605,12 @@ Example:
 
       _comments_response: function(event, detail){
         this.comments = detail.response.items;
-        for(var i=0; i<this.comments.length; i++){
-          this.image_url = this.comments[i].snippet.topLevelComment.snippet.authorProfileImageUrl;
-          if(!this.$.cache_image.auto)this.$.cache_image.auto=true;
-        }
-        
+        for (var i = 0; i < this.comments.length; i++) {
+          //Parse comment inner html
+          var text = this.comments[i].snippet.topLevelComment.snippet.textDisplay;
+          text = text.replace(/<(?:.|\n)*?>/gm, '');
+          this.comments[i].snippet.topLevelComment.snippet.textDisplay = text;
+        };        
       },
 
       _post_response: function(event, detail){
@@ -661,8 +620,9 @@ Example:
         }
       },
 
-      // PUBLIC METHODS
+      /******************************** PUBLIC METHODS ********************************/
 
+      /* Search: search video on YouTube matching the [_keywords] value. */
       search: function(){
         //Clear window and params
         this._view_detail = false;
@@ -681,6 +641,18 @@ Example:
         this.$.search_request.generateRequest();
       },
 
+      /* Comment: comment the text [commentText] on the video with id [videoId] */
+      comment: function(){
+        this.channelId = this.channel.id;
+        this.videoId = this.item.id.videoId;
+        this.$.post_comment.generateRequest();
+        this.hideCommentButtons=true;
+      },
+
+      /******************************* INTERNAL METHODS ********************************/
+
+      /* Pagination */
+
       _search_next: function(){
         if(this._last_search && this._cache[this._cursor].nextPageToken){
           this._search_params =
@@ -693,17 +665,6 @@ Example:
           this.$.search_request.generateRequest();
         }
       },
-
-      comment: function(){
-        this.channelId = this.channel.id;
-        this.videoId = this.item.id.videoId;
-        this.$.post_comment.generateRequest();
-        this.hideCommentButtons=true;
-      },
-
-      // ELEMENT BEHAVIOUR
-
-      /* Pagination */
 
       _clear: function(){
         this.result = null;
@@ -743,6 +704,7 @@ Example:
       },
 
       /* Side Menu animation */
+
       _toggle: function(){
         if(this.$['dropdown-content'].style.left=="-105px"){
           this.$['dropdown-content'].style.left="0";
@@ -753,33 +715,36 @@ Example:
       },
 
       /* Allow search typing ENTER */
+
       _check_search: function(e){
         if(e.keyCode === 13){
           this.search();
         }
       },
 
-      /* Allow comment typing ENTER */
+      /* Allow comment when [commentText] is not empty */
+
       _check_comment: function(e){
         if(this.hideCommentButtons)this.hideCommentButtons=false;
       },
 
-      commentText_changed: function(e){
+      _commentText_changed: function(e){
         if(this.commentText.length==0)this.commentDisabled=true;
         else{
           this.commentDisabled=false;
         }
       },
 
-      cancel_comment: function(){
+      _cancel_comment: function(){
         this.commentText = '';
         this.hideCommentButtons=true;
       },
 
       /* Detail view */
-      detail: function(e){
+      _detail: function(e){
         this.item = e.model.item;
         this.$.channel_request.generateRequest();
+        this.comments=null;
         this.$.comments_request.generateRequest();
         this.$.footer.hidden = true;
         this.hideCommentButtons=true;
@@ -811,16 +776,7 @@ Example:
         return out;
       },
 
-      // Element Lifecycle
-
-      ready: function() {
-        // `ready` is called after all elements have been configured, but
-        // propagates bottom-up. This element's children are ready, but parents
-        // are not.
-        //
-        // This is the point where you should make modifications to the DOM (when
-        // necessary), or kick off any processes the element wants to perform.
-      },
+      /*************************** ELEMENT LIFECYCLE ********************************/
 
       attached: function() {
         // `attached` fires once the element and its parents have been inserted
@@ -830,13 +786,6 @@ Example:
         // visual state or active behavior (measuring sizes, beginning animations,
         // loading resources, etc).
         this.$['dropdown-content'].style.left="-105px";
-      },
-
-      detached: function() {
-        // The analog to `attached`, `detached` fires when the element has been
-        // removed from a document.
-        //
-        // Use this to clean up anything you did in `attached`.
       },
 
     });
