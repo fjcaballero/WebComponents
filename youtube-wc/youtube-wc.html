@@ -138,6 +138,28 @@ Example:
         cursor: pointer;
       }
 
+      .channel-item{
+        width: 75%;
+      }
+
+      .channel_button{
+        text-transform: none;
+        font: 11px Roboto,arial,sans-serif;
+        border-radius: 1px;
+        background-color: var(--paper-grey-200);
+        margin-top: 5px;
+        padding: 2px;
+      }
+
+      .badge{
+        border: 1px solid;
+        border-radius: 1px;
+        border-color: var(--paper-grey-500);
+        font: 12px Roboto,arial,sans-serif;
+        text-transform: uppercase;
+        padding: 2px;
+      }
+
       .thumbnail{
         position: absolute;
         top: 0;
@@ -150,7 +172,7 @@ Example:
         position: relative;
         padding-left: calc(129px + 5px);
         padding-top: 2px;
-        padding-bottom: 2px;
+        padding-bottom: 5px;
         padding-right: 5px;
         word-wrap: break-word;
       }
@@ -341,7 +363,9 @@ Example:
   
     </style>
 
-    <!-- HEADER -->
+    <!--.............................. HEADER .............................-->
+
+    <!-- Navbar and search -->
     <paper-header-panel mode="seamed">
       <paper-toolbar class="header">
         <paper-icon-button icon="menu" class="menu" on-click="_toggle"></paper-icon-button>
@@ -358,21 +382,55 @@ Example:
       <paper-button raised class="item">Opcion 2</paper-button>
       <paper-button raised class="item">Opcion 3</paper-button>
     </paper-menu>
-    <!-- MAIN CONTENT -->
+
+    <!-- Pagination controllers -->
+    <div id="footer" class="footer" hidden="true">
+      <a class="triangleLeft"></a>
+      <a id="square" class="square"></a>
+      <a class="triangleRight"></a>
+      <paper-icon-button class="before" icon="icons:arrow-back" on-click="_before"></paper-icon-button>
+      <span class="cursor">{{_cursor}}</span>
+      <paper-icon-button class="next" icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
+    </div>
+
+    <!--.......................... MAIN CONTENT .............................-->
+
+    <!-- Results -->
     <div class="content" hidden="{{_view_detail}}">
       <template id="results_template" is="dom-repeat" items="[[result.items]]">
-        <div class="resul-item" on-click="_detail">
-          <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
-          <div class="info">
-            <div class="result-title">{{item.snippet.title}}</div>
-            <div class="result-channel">{{item.snippet.channelTitle}}</div>
-            <div class="result-channel">{{_getDate(item)}}</div>
-            <div class="result-description">{{item.snippet.description}}</div>
+        
+        <!-- Channel -->
+        <template is="dom-if" if="{{_isChannel(item)}}">
+          <div class="resul-item channel-item">
+            <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
+            <div class="info">
+              <div class="result-title">{{item.snippet.title}}</div>
+              <div class="result-description">{{item.snippet.description}}</div>
+              <span class="badge">{{words.channel}}</span>
+              <paper-button raised class="channel_button">{{words.subscribe}}</paper-button>
+            </div>
+            
           </div>
-        </div>
+        </template>
+        
+        <!-- Video -->
+        <template is="dom-if" if="{{!_isChannel(item)}}">
+          <div class="resul-item" on-click="_detail">
+            <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
+            <div class="info">
+              <div class="result-title">{{item.snippet.title}}</div>
+              <div class="result-channel">{{item.snippet.channelTitle}}</div>
+              <div class="result-channel">{{_getDate(item)}}</div>
+              <div class="result-description">{{item.snippet.description}}</div>
+            </div>
+          </div>
+        </template>
+        
       </template>
       
     </div>
+
+  <!-- Detail -->
   <div class="content content2" hidden="{{!_view_detail}}">
     <template id="detail" is="dom-if" if="_view_detail">   
 
@@ -384,10 +442,12 @@ Example:
         <div class="detail-title">{{item.snippet.title}}</div>
         <div class="channel-stats">
           <img class="channel-img" src="{{channel.snippet.thumbnails.default.url}}">
-          <div class="detail-channel">{{item.snippet.channelTitle}}</div>   
+          <div class="detail-channel">{{item.snippet.channelTitle}}</div>
+          <paper-button raised class="channel_button">{{words.subscribe}}</paper-button>   
         </div>
       </div>
 
+      <!-- Comments -->
       <div class="comments">
         {{words.comments}}
         <textarea class="comment-area" rows="4" cols="50" value="{{commentText::input}}" on-keydown="_check_comment"></textarea>
@@ -399,27 +459,15 @@ Example:
             <object class="comment-img" data="{{item.snippet.topLevelComment.snippet.authorProfileImageUrl}}" type="image/jpg">
               <img class="comment-img" src="resources/default.png">
             </object>
-            
             <div class="comment-name">{{item.snippet.topLevelComment.snippet.authorDisplayName}}</div>
             <div class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
           </div>
         </template>
       </div>  
-
     </template>
   </div>
-  <div id="footer" class="footer" hidden="true">
-    <a class="triangleLeft"></a>
-    <a id="square" class="square"></a>
-    <a class="triangleRight"></a>
-    <paper-icon-button class="before" icon="icons:arrow-back" on-click="_before"></paper-icon-button>
-    <span class="cursor">{{_cursor}}</span>
-    <paper-icon-button class="next" icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
-    
-  </div>
 
-
-    <!-- AJAX CALLS -->
+    <!--............................. AJAX CALLS ..............................-->
 
     <iron-ajax
       id="language_request"
@@ -461,6 +509,8 @@ Example:
     <iron-ajax>
 
   </template>
+
+  <!--............................ PROPERTIES AND METHODS ............................-->
 
   <script>
 
@@ -745,6 +795,12 @@ Example:
       _cancel_comment: function(){
         this.commentText = '';
         this.hideCommentButtons=true;
+      },
+
+
+      _isChannel: function(item){
+        if(item.id.kind=="youtube#channel")return true;
+        else return false;
       },
 
       /* Detail view */
