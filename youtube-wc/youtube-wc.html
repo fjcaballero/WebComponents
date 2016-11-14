@@ -354,7 +354,7 @@ Example:
       </paper-toolbar>
     </paper-header-panel>
     <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
-      <paper-button raised class="item">Opcion 1</paper-button>
+      <paper-button raised class="item">{{words.title}}</paper-button>
       <paper-button raised class="item">Opcion 2</paper-button>
       <paper-button raised class="item">Opcion 3</paper-button>
     </paper-menu>
@@ -401,7 +401,7 @@ Example:
             </object>
             
             <div class="comment-name">{{item.snippet.topLevelComment.snippet.authorDisplayName}}</div>
-            <div id="comment_{{index}}" class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
+            <div class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
           </div>
         </template>
       </div>  
@@ -493,7 +493,6 @@ Example:
         /* Language: Language for your application */
         language: {
           type: String,
-          value: "en",
           observer: "_languageChanged"
         },
 
@@ -570,6 +569,7 @@ Example:
 
       _language_response: function(event, detail){
         this.words = detail.response;
+        this._refresh();
       },
 
       /********************************* API METHODS *********************************/
@@ -668,6 +668,13 @@ Example:
 
       _clear: function(){
         this.result = null;
+        this.$.results_template.render();
+      },
+
+      _refresh: function(){
+        var copy = this.result;
+        this._clear();
+        this.result = copy;
         this.$.results_template.render();
       },
 
