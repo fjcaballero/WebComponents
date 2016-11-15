@@ -108,12 +108,19 @@ Example:
         left: -105px;
         top: 60px;
         transition: .5s ease;
+
+        font: 13px Roboto, arial, sans-serif;
       }
 
       .dropdown-content .item{
         width: 100%;
         margin: 0;
         text-transform: none;
+        padding: 7px;
+      }
+
+      .item[disabled]{
+        opacity: .5;
       }
 
       .content{
@@ -132,10 +139,10 @@ Example:
         margin-left: auto;
         margin-right: auto;
         margin-bottom: 10px;
-        width: 90%;
+        width: 95%;
         min-height: 100px;
         position: relative;
-        cursor: pointer;
+        cursor: auto;
       }
 
       .channel-item{
@@ -149,30 +156,35 @@ Example:
         background-color: var(--paper-grey-200);
         margin-top: 5px;
         padding: 2px;
+        position: relative;
+        bottom: -2px;
       }
 
       .badge{
         border: 1px solid;
         border-radius: 1px;
         border-color: var(--paper-grey-500);
-        font: 12px Roboto,arial,sans-serif;
+        font: 11px Roboto,arial,sans-serif;
         text-transform: uppercase;
         padding: 2px;
+        margin-bottom: 5px;
       }
 
       .thumbnail{
         position: absolute;
-        top: 0;
-        left: 0;
+        top: calc((100% - 100px) / 2);
+        left: 5px;
         width: 129px;
         height: 100px;
+        z-index: 1;
+        cursor: pointer;
       }
 
       .info{
         position: relative;
-        padding-left: calc(129px + 5px);
+        padding-left: calc(129px + 10px);
         padding-top: 2px;
-        padding-bottom: 5px;
+        padding-bottom: 6px;
         padding-right: 5px;
         word-wrap: break-word;
       }
@@ -181,6 +193,7 @@ Example:
         color: #167ac6;
         font: 15px Roboto,arial,sans-serif;
         font-weight: 500;
+        cursor: pointer;
       }
 
       .info .result-channel, .result-description{
@@ -360,6 +373,26 @@ Example:
       .comments hr{
         clear: right;
       }
+
+      .channel_button{
+        background-color: #e62117;
+        color: #ffffff;
+        padding: 4px;
+        border-radius: 3px;
+      }
+
+      .channel_button[disabled]{
+        background-color: var(--paper-grey-200);
+        color: var(--paper-grey-900);
+        border: 1px solid;
+        border-color: var(--paper-grey-300);
+      }
+
+      .subscribe-icon{
+        width: 17px;
+        height: 13px;
+        margin-right: 3px;
+      }
   
     </style>
 
@@ -377,10 +410,10 @@ Example:
         </div>
       </paper-toolbar>
     </paper-header-panel>
+
+    <!-- Dropdown -->
     <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
-      <paper-button raised class="item">{{words.title}}</paper-button>
-      <paper-button raised class="item">Opcion 2</paper-button>
-      <paper-button raised class="item">Opcion 3</paper-button>
+      <paper-button raised class="item" disabled="{{notLogged}}">{{words.subscriptions}}</paper-button>
     </paper-menu>
 
     <!-- Pagination controllers -->
@@ -407,7 +440,12 @@ Example:
               <div class="result-title">{{item.snippet.title}}</div>
               <div class="result-description">{{item.snippet.description}}</div>
               <span class="badge">{{words.channel}}</span>
-              <paper-button raised class="channel_button">{{words.subscribe}}</paper-button>
+              <paper-button raised class="channel_button" disabled="{{_isSubscribed(item)}}" on-click="subscribe">
+                <iron-icon class="subscribe-icon" src="resources/subscribe.png" hidden="{{_isSubscribed(item)}}"></iron-icon>
+                <iron-icon class="subscribe-icon" icon="icons:check" hidden="{{!_isSubscribed(item)}}"></iron-icon>
+                <span hidden="{{_isSubscribed(item)}}">{{words.subscribe}}</span>
+                <span hidden="{{!_isSubscribed(item)}}">{{words.subscribed}}</span>
+              </paper-button>
             </div>
             
           </div>
@@ -443,7 +481,12 @@ Example:
         <div class="channel-stats">
           <img class="channel-img" src="{{channel.snippet.thumbnails.default.url}}">
           <div class="detail-channel">{{item.snippet.channelTitle}}</div>
-          <paper-button raised class="channel_button">{{words.subscribe}}</paper-button>   
+          <paper-button raised class="channel_button" disabled="{{_isSubscribed(item)}}" on-click="subscribe">
+            <iron-icon class="subscribe-icon" src="resources/subscribe.png" hidden="{{_isSubscribed(item)}}"></iron-icon>
+            <iron-icon class="subscribe-icon" icon="icons:check" hidden="{{!_isSubscribed(item)}}"></iron-icon>
+            <span hidden="{{_isSubscribed(item)}}">{{words.subscribe}}</span>
+            <span hidden="{{!_isSubscribed(item)}}">{{words.subscribed}}</span>
+          </paper-button>
         </div>
       </div>
 
@@ -498,13 +541,32 @@ Example:
     </iron-ajax>
 
     <iron-ajax
+      id="subscriptions_request"
+      url="{{_base_URL}}/subscriptions?part=snippet&mine=true&key={{api_key}}"
+      headers="{{_api_headers}}"
+      on-response="_subscriptions_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
       id="post_comment"
       method="POST"
       url="{{_base_URL}}/commentThreads?part=snippet"
       headers="{{_api_headers}}"
       content-type="application/json"
-      body="{{_post_params}}"
-      on-response="_post_response"
+      body="{{_comment_params}}"
+      on-response="_post_comment_response"
+      >
+    <iron-ajax>
+
+    <iron-ajax
+      id="post_subscribe"
+      method="POST"
+      url="{{_base_URL}}/subscriptions?part=snippet"
+      headers="{{_api_headers}}"
+      content-type="application/json"
+      body="{{_subscribe_params}}"
+      on-response="_subscribe_response"
       >
     <iron-ajax>
 
@@ -525,14 +587,14 @@ Example:
         /* Token: The access_token generated to grant access to the API */
         token: {
           type: String,
-          reflectToAttribute: true
+          observer: "_init"
         },
 
         /* API Key: The API Key for your application */
-        api_key: String,
-
-        /* Client Id: The OAuth 2.0 client ID for your application */
-        client_id: String,
+        api_key: {
+          type: String,
+          observer: "_init"
+        },
 
         /* Component Base: The component base directory */
         component_base: {
@@ -561,9 +623,14 @@ Example:
           computed: "_get_api_headers(token)"
         },
 
-        _post_params: {
+        _comment_params: {
           type: String,
-          computed: "_get_post_params(channelId, videoId, commentText)"
+          computed: "_get_comment_params(channelId, videoId, commentText)"
+        },
+
+        _subscribe_params:{
+          type: String,
+          computed: "_get_subscribe_params(channelId)"
         },
 
         _base_URL: {
@@ -628,7 +695,7 @@ Example:
         return {Authorization: 'Bearer '+token};
       },
 
-      _get_post_params: function(channelId, videoId, commentText){
+      _get_comment_params: function(channelId, videoId, commentText){
         return {
           snippet: {
             channelId: channelId,
@@ -637,6 +704,16 @@ Example:
               snippet: {
                 textOriginal: commentText
               }
+            }
+          }
+        }
+      },
+
+      _get_subscribe_params: function(channelId){
+        return {
+          snippet: {
+            resourceId: {
+              channelId: channelId
             }
           }
         }
@@ -663,11 +740,26 @@ Example:
         };        
       },
 
-      _post_response: function(event, detail){
+      _subscriptions_response: function(event, detail){
+        var array = [];
+        var items = detail.response.items;
+        for(var i=0; i<items.length; i++){
+          array.push(items[i].snippet.resourceId.channelId);
+        }
+        this.subscriptions = array;
+      },
+
+      _post_comment_response: function(event, detail){
         if(detail.response.snippet){
           this.push('comments',detail.response);
           this.commentText = '';
         }
+      },
+
+      _subscribe_response: function(event, detail){
+        console.log('Subscribe reponse:',detail.response);
+        this.subscriptions.push(detail.response.snippet.resourceId.channelId);
+        this._refresh();
       },
 
       /******************************** PUBLIC METHODS ********************************/
@@ -697,6 +789,18 @@ Example:
         this.videoId = this.item.id.videoId;
         this.$.post_comment.generateRequest();
         this.hideCommentButtons=true;
+      },
+
+      /* Subscribe: subscribe the users channel to the specified channel*/
+      subscribe: function(e){
+        if(this._view_detail){
+          this.channelId = this.channel.id;
+        }
+        else{
+          var item = e.model.item;
+          this.channelId = item.id.channelId;
+        }
+        this.$.post_subscribe.generateRequest();
       },
 
       /******************************* INTERNAL METHODS ********************************/
@@ -803,6 +907,16 @@ Example:
         else return false;
       },
 
+      _isSubscribed: function(item){
+        console.log(item);
+        if(this.token && this.subscriptions){
+          if(this.subscriptions.indexOf(item.snippet.channelId) != -1){
+            return true;
+          }
+        }
+        return false;       
+      },
+
       /* Detail view */
       _detail: function(e){
         this.item = e.model.item;
@@ -841,6 +955,15 @@ Example:
 
       /*************************** ELEMENT LIFECYCLE ********************************/
 
+      _init: function(newVal, oldValue){
+        if(this.token){
+          this.notLogged = false;
+        }
+        if(this.token && this.api_key){
+          this.$.subscriptions_request.generateRequest();
+        }
+      },
+
       attached: function() {
         // `attached` fires once the element and its parents have been inserted
         // into a document.
@@ -849,6 +972,7 @@ Example:
         // visual state or active behavior (measuring sizes, beginning animations,
         // loading resources, etc).
         this.$['dropdown-content'].style.left="-105px";
+        this.notLogged = true;
       },
 
     });

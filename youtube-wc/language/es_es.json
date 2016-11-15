@@ -13,5 +13,8 @@
 	"cancel": "Cancelar",
 	"comment": "Comentar",
 	"subscribe": "Suscribirse",
-	"channel": "Canal"
+	"subscribed": "Suscrito",
+	"channel": "Canal",
+	"subscriptions": "Suscripciones",
+	"ask4login": "No has iniciado sesión"
 }

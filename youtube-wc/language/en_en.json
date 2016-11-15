@@ -13,5 +13,8 @@
 	"cancel": "Cancel",
 	"comment": "Comment",
 	"subscribe": "Subscribe",
-	"channel": "Channel"
+	"subscribed": "Subscribed",
+	"channel": "Channel",
+	"subscriptions": "Subscriptions",
+	"ask4login": "You are not logged"
 }
