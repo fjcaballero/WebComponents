@@ -767,10 +767,7 @@ Example:
 
       _feed_response: function(event, detail){
         var feed = [];
-        var feed = detail.response.items;/*
-        for(var i=0; i<items.length; i++){
-          if(items[i].snippet.type=="upload")feed.push(items[i]);
-        }*/
+        var feed = detail.response.items;
         if(!this.result)this.result={};
         this.result.items = feed;
         this._refresh();
