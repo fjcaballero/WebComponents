@@ -1,0 +1,183 @@
+<!--
+@license
+@author Javier Caballero Abenza. All rights reserved.
+
+An element to allow users log into Youtube using your app.
+
+Example:
+
+    <youtube-login></youtube-login>
+
+@element youtube-login
+@demo demo/index.html
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<dom-module id="youtube-login">
+
+  <template>
+
+    <style is="custom-style">
+
+      :host { 
+        display: block;
+        min-height: 60px;
+        min-width: 80px;
+        max-height: 60px;
+        max-width: 80px;
+      }
+
+      paper-button{
+        background: #ffffff;
+        padding: 0;
+        margin: 0;
+      }
+
+      iron-icon{
+        padding: 5px;
+        --iron-icon-width: 80;
+        --iron-icon-height: 60;
+      }
+
+      .logged{ background: #808080; }
+
+    </style>
+
+    <paper-button raised id="loginButton" title="YouTube" on-click="login">
+      <iron-icon src="resources/youtube.png"></iron-icon>
+    </paper-button>   
+
+    <iron-ajax
+      id="validate_token"
+      url="https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={{token}}"
+      on-response="_validated"
+      on-error="_error"
+      >
+    </iron-ajax>
+
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      is: 'youtube-login',
+
+      properties: {
+      //PUBLIC CONFIG PARAMS
+
+        /* Client Id: The OAuth 2.0 client ID for your application */
+        client_id: String,
+
+        /* Redirect URI: A registered redirect_uri for your client ID */
+        redirect_uri: String,
+
+        /* Scope: A space-delimited list of scopes that identify the resources that your application could access on the user's behalf. These values determine which permissions are listed on the consent page that Google displays to the user. */
+        scope: { 
+          type: String, 
+          value:  'https://www.googleapis.com/auth/youtube'+' '+
+                  'https://www.googleapis.com/auth/youtube.force-ssl'+' '+
+                  'https://www.googleapis.com/auth/youtube.readonly'+' '+
+                  'https://www.googleapis.com/auth/youtube.upload'         
+        },
+
+      //INTERNAL CONFIG PARAMS
+
+        _oauth2_url: { 
+          type: String, 
+          value: "https://accounts.google.com/o/oauth2/auth" 
+        },
+
+      },
+
+      //AJAX RESPONSES
+
+      _validated: function(event, detail){
+        var response = detail.response;
+        if(response.audience == this.client_id){
+          //LOGGED
+          this.fire('youtube-logged',{ token: this.token, userId: response.userid });
+          this._logged();
+        }
+      },
+
+      _error: function(event, detail){
+        console.error("youtube-login: Error, ", detail.response.error);
+      },
+
+      //LOGICAL FUNCTIONS
+
+      login: function(){
+
+        //Generate random state
+        this._state = (Math.random()*100000).toString(36);
+        
+        var url =   this._oauth2_url + '?' +
+                    "client_id="+ this.client_id + "&" +
+                    "response_type=token" + "&" +
+                    "redirect_uri="+ this.redirect_uri + "&" +
+                    "scope=" + this.scope + "&" +
+                    "state=" + this._state;
+
+        var win = window.open(url,"",'width=800, height=600');
+        
+        var back = this;
+
+        var loop = window.setInterval(function(){
+          try {
+
+            var url = win.document.URL;
+
+            if(url.indexOf('state') != -1 && url.indexOf('access_token') != -1){
+              window.clearInterval(loop);
+              
+              //access_code from URL
+              var patron = "access_token"+"=([^&#]*)";
+              var exp = new RegExp(patron);
+              back.token = exp.exec(url)[1];
+
+              //state from URL
+              patron = "state"+"=([^&#]*)";
+              exp = new RegExp(patron);
+              var new_state = exp.exec(url)[1];
+
+              //State received must be equal to local state
+              if(new_state != back._state){
+                console.error("youtube-login: Different state received from the server");
+              }
+              //Securely validate the access token
+              else{
+                back.$.validate_token.generateRequest();
+                win.close();
+              }
+            }
+            else if(url.indexOf('error') != -1){
+              window.clearInterval(loop);
+
+              //error from URL
+              var patron = "error"+"=([^&#]*)";
+              var exp = new RegExp(patron);
+              var error = exp.exec(url)[1];
+              console.log('Youtube-Login_Error: '+error);
+              win.close();
+            }
+              
+          }catch(e){}
+        }, 100);
+      },
+
+      _logged: function(){
+        //Apply CSS
+        this.$['loginButton'].className += " logged";
+      }
+
+    });
+
+  </script>
+
+</dom-module>

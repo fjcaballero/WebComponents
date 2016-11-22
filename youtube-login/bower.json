@@ -1,0 +1,25 @@
+{
+  "name": "youtube-login",
+  "version": "1.0.3",
+  "authors": [
+    "Javier Caballero <javier.caballero.abenza@gmail.com>"
+  ],
+  "description": "An element to allow users log into Youtube using your app.",
+  "keywords": [
+    "web-component",
+    "polymer",
+    "youtube"
+  ],
+  "main": "youtube-login.html",
+  "license": "https://github.com/Javichuck/WebComponents/blob/master/LICENSE",
+  "ignore": [
+    "/.*",
+    "/test/"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.1.0",
+    "iron-ajax": "PolymerElements/iron-ajax#^1.0.0",
+    "iron-icon": "PolymerElements/iron-icon#^1.0.0",
+    "paper-button": "PolymerElements/paper-button#^1.0.0"
+  },
+}
