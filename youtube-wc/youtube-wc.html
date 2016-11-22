@@ -1,0 +1,1011 @@
+<!--
+@license
+@author Javier Caballero Abenza. All rights reserved.
+
+An element to search and watch videos from YouTube
+
+Example:
+
+    <youtube-wc></youtube-wc>
+
+@element youtube-wc
+@demo demo/index.html
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-icons/av-icons.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+<link rel="import" href="../paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../google-youtube/google-youtube.html">
+
+<dom-module id="youtube-wc">
+
+  <template>
+    <style is="custom-style">
+
+      :host {
+        display: block;
+        min-width: 450px;
+        min-height: 350px;        
+        width: 450px;
+        height: 350px;
+        background: var(--paper-grey-300);
+        overflow: hidden;
+        position: relative;
+        
+      }
+
+      .header, paper-header-panel{
+        min-height: 60px;
+        max-height: 60px;
+        background: #ffffff;
+        color: var(--paper-grey-500);
+      }
+
+      .icon{
+        padding: 5px;
+        --iron-icon-width: 70px;
+        --iron-icon-height: 30px;
+      }
+
+      paper-icon-button:hover{
+        color: var(--paper-grey-900);
+      }
+
+      .header ::shadow #topBar {
+        padding-left: 0;
+      }
+
+      .header .menu{
+        margin-left: 5px;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+      }
+
+      .header .search-box{
+        position: absolute;
+        left: 125px;
+        top: 0;
+        height: 60px;
+        width: calc(100% - 125px);
+        text-align: center;
+      }
+
+      .search-box input{
+        width: 60%;
+      }
+
+      .search-box input{
+        margin-top: 19.5px;
+        margin-bottom: 19.5px;
+      }
+
+      .search-box paper-icon-button{
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+
+      .back{
+        position: absolute;
+        right: 10px;
+      }
+
+      .dropdown-content{
+        background: #ffffff;
+        width: 100px;
+        max-width: 100px;
+        color: var(--paper-grey-800);
+        padding: 0;
+
+        position: absolute;
+        z-index: 2;
+        left: -105px;
+        top: 60px;
+        transition: .5s ease;
+
+        font: 13px Roboto, arial, sans-serif;
+      }
+
+      .dropdown-content .item{
+        width: 100%;
+        margin: 0;
+        text-transform: none;
+        padding: 7px;
+      }
+
+      .item[disabled]{
+        opacity: .5;
+      }
+
+      .content{
+        overflow-y: scroll;
+        max-height: calc( 100% - 85px);
+        width: 100%;
+        height: calc( 100% - 85px);
+        position: relative;
+        padding-top: 25px;
+        color: var(--paper-grey-800);
+      }
+
+      .resul-item{
+        background: #ffffff;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 10px;
+        width: 95%;
+        min-height: 100px;
+        position: relative;
+        cursor: auto;
+      }
+
+      .channel-item{
+        width: 75%;
+      }
+
+      .channel_button{
+        text-transform: none;
+        font: 11px Roboto,arial,sans-serif;
+        border-radius: 1px;
+        background-color: var(--paper-grey-200);
+        margin-top: 5px;
+        padding: 2px;
+        position: relative;
+        bottom: -2px;
+      }
+
+      .badge{
+        border: 1px solid;
+        border-radius: 1px;
+        border-color: var(--paper-grey-500);
+        font: 11px Roboto,arial,sans-serif;
+        text-transform: uppercase;
+        padding: 2px;
+        margin-bottom: 5px;
+      }
+
+      .thumbnail{
+        position: absolute;
+        top: calc((100% - 100px) / 2);
+        left: 5px;
+        width: 129px;
+        height: 100px;
+        z-index: 1;
+        cursor: pointer;
+      }
+
+      .info{
+        position: relative;
+        padding-left: calc(129px + 10px);
+        padding-top: 2px;
+        padding-bottom: 6px;
+        padding-right: 5px;
+        word-wrap: break-word;
+      }
+
+      .result-title{
+        color: #167ac6;
+        font: 15px Roboto,arial,sans-serif;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .info .result-channel, .result-description{
+        font: 12px Roboto,arial,sans-serif;
+      }
+
+      .result-description{
+        overflow: hidden;
+        display: -webkit-box;
+        max-width: 400px;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .footer{
+        position: absolute;
+        z-index: 2;
+        right: 40%;
+        top: 50px;
+        max-height: 25px;
+        color: var(--paper-grey-800);
+        background: transparent;
+        text-align: center;
+      }
+
+      .footer paper-icon-button{
+        z-index: 2;
+        padding-top: 1px;
+        padding-bottom: 1px;
+        max-height: 25px;
+      }
+
+      .before{
+        padding-left: 10px;
+        padding-right: 2px;
+      }
+
+      .next{
+        padding-left: 2px;
+        padding-right: 10px;
+      }
+
+      .cursor{
+        position: relative;
+        z-index: 2;
+      }
+
+      .triangleRight{
+        z-index: 1;
+        position: absolute;
+        top: 0;
+        right: -2px;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 25px 25px 0 0;
+        border-color: #ffffff transparent transparent transparent;
+      }
+
+      .square{
+        z-index: 1;
+        position: absolute;
+        top: 0;
+        left: 23px;
+        width: 50px;
+        height: 0;
+        border-style: solid;
+        border-width: 0 0 25px 0;
+        border-color: #ffffff; 
+      }
+
+      .triangleLeft{
+        z-index: 1;
+        position: absolute;
+        top: 0;
+        left: -2px;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 25px 25px 0;
+        border-color: transparent #ffffff transparent transparent;
+      }
+
+      .content2{
+        max-height: calc( 100% - 60px);
+        padding-top: 0px;
+        color: var(--paper-grey-800);
+      }
+
+      .video{
+        background: #000000;
+      }
+
+      .video ::shadow #container{
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .video-stats, .comments{
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        background: #ffffff;
+        color: var(--paper-grey-900);
+        padding: 10px;
+      }
+
+      .channel-stats{
+        position: relative;
+        margin-top: 10px;
+        min-height: 60px;
+        padding-left: 70px;
+        max-width: calc(100% - 70px);
+      }
+
+      .detail-title{        
+        font: 24px Roboto,arial,sans-serif;
+      }
+
+      .detail-channel{
+      }
+
+      .channel-img{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 60px;
+        height: 60px;
+      }
+
+      .comments{
+        margin-top: 10px;
+      }
+
+      .comment{
+        position: relative;
+        margin-bottom: 20px;
+        min-height: 50px;
+      }
+
+      .comment-img{
+        position: absolute;
+        margin-top: 2px;
+        top: 0;
+        left: 0;
+        width: 50px;
+        height: 50px;
+      }
+
+      .comment-name, .comment-text{
+        padding-left: 60px;
+        max-width: calc(100% - 70px);
+        font: 15px Roboto,arial,sans-serif;
+      }
+
+      .comment-name{
+        color: #167ac6;
+        font-weight: 500;
+      }
+
+      .comment-area{
+        max-width: calc(100% - 7px);
+        font: 15px Roboto,arial,sans-serif;
+      }
+
+      .comment_button, .cancel_button{
+        margin: 0 0 5px 5px;
+        float: right;
+        text-transform: none;
+        font: 11px Roboto,arial,sans-serif;
+        border-radius: 3px;
+        background-color: var(--paper-grey-200);
+      }
+
+      .comment_button{
+        background-color: #167ac6;
+        color: #ffffff;
+      }
+
+      .comment_button[disabled]{
+        opacity: .5;
+      }
+
+      .comments hr{
+        clear: right;
+      }
+
+      .channel_button{
+        background-color: #e62117;
+        color: #ffffff;
+        padding: 4px;
+        border-radius: 3px;
+      }
+
+      .channel_button[disabled]{
+        background-color: var(--paper-grey-200);
+        color: var(--paper-grey-900);
+        border: 1px solid;
+        border-color: var(--paper-grey-300);
+      }
+
+      .subscribe-icon{
+        width: 17px;
+        height: 13px;
+        margin-right: 3px;
+      }
+  
+    </style>
+
+    <!--.............................. HEADER .............................-->
+
+    <!-- Navbar and search -->
+    <paper-header-panel mode="seamed">
+      <paper-toolbar class="header">
+        <paper-icon-button icon="menu" class="menu" on-click="_toggle"></paper-icon-button>
+        <iron-icon src="resources/youtube.png" class="icon"></iron-icon>
+        <div class="search-box">
+          <input value="{{_keywords::input}}" on-keydown="_check_search">
+          <paper-icon-button icon="search" on-click="search"></paper-icon-button>
+          <paper-icon-button class="back" icon="icons:undo" on-click="_back" hidden="{{!_view_detail}}"></paper-icon-button>
+        </div>
+      </paper-toolbar>
+    </paper-header-panel>
+
+    <!-- Dropdown -->
+    <paper-menu id="dropdown-content" class="dropdown-content" role="listbox">
+      <paper-button raised class="item" disabled="{{notLogged}}">{{words.subscriptions}}</paper-button>
+    </paper-menu>
+
+    <!-- Pagination controllers -->
+    <div id="footer" class="footer" hidden="true">
+      <a class="triangleLeft"></a>
+      <a id="square" class="square"></a>
+      <a class="triangleRight"></a>
+      <paper-icon-button class="before" icon="icons:arrow-back" on-click="_before"></paper-icon-button>
+      <span class="cursor">{{_cursor}}</span>
+      <paper-icon-button class="next" icon="icons:arrow-forward" on-click="_next"></paper-icon-button>
+    </div>
+
+    <!--.......................... MAIN CONTENT .............................-->
+
+    <!-- Results -->
+    <div class="content" hidden="{{_view_detail}}">
+      <template id="results_template" is="dom-repeat" items="[[result.items]]">
+        
+        <!-- Channel -->
+        <template is="dom-if" if="{{_isChannel(item)}}">
+          <div class="resul-item channel-item">
+            <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
+            <div class="info">
+              <div class="result-title">{{item.snippet.title}}</div>
+              <div class="result-description">{{item.snippet.description}}</div>
+              <span class="badge">{{words.channel}}</span>
+              <paper-button raised class="channel_button" disabled="{{_isSubscribed(item)}}" on-click="subscribe">
+                <iron-icon class="subscribe-icon" src="resources/subscribe.png" hidden="{{_isSubscribed(item)}}"></iron-icon>
+                <iron-icon class="subscribe-icon" icon="icons:check" hidden="{{!_isSubscribed(item)}}"></iron-icon>
+                <span hidden="{{_isSubscribed(item)}}">{{words.subscribe}}</span>
+                <span hidden="{{!_isSubscribed(item)}}">{{words.subscribed}}</span>
+              </paper-button>
+            </div>
+            
+          </div>
+        </template>
+        
+        <!-- Video -->
+        <template is="dom-if" if="{{!_isChannel(item)}}">
+          <div class="resul-item" on-click="_detail">
+            <img class="thumbnail" src="{{item.snippet.thumbnails.default.url}}">
+            <div class="info">
+              <div class="result-title">{{item.snippet.title}}</div>
+              <div class="result-channel">{{item.snippet.channelTitle}}</div>
+              <div class="result-channel">{{_getDate(item)}}</div>
+              <div class="result-description">{{item.snippet.description}}</div>
+            </div>
+          </div>
+        </template>
+        
+      </template>
+      
+    </div>
+
+  <!-- Detail -->
+  <div class="content content2" hidden="{{!_view_detail}}">
+    <template id="detail" is="dom-if" if="_view_detail">   
+
+      <google-youtube class="video"
+        video-id="{{item.id.videoId}}">
+      </google-youtube>
+
+      <div class="video-stats">
+        <div class="detail-title">{{item.snippet.title}}</div>
+        <div class="channel-stats">
+          <img class="channel-img" src="{{channel.snippet.thumbnails.default.url}}">
+          <div class="detail-channel">{{item.snippet.channelTitle}}</div>
+          <paper-button raised class="channel_button" disabled="{{_isSubscribed(item)}}" on-click="subscribe">
+            <iron-icon class="subscribe-icon" src="resources/subscribe.png" hidden="{{_isSubscribed(item)}}"></iron-icon>
+            <iron-icon class="subscribe-icon" icon="icons:check" hidden="{{!_isSubscribed(item)}}"></iron-icon>
+            <span hidden="{{_isSubscribed(item)}}">{{words.subscribe}}</span>
+            <span hidden="{{!_isSubscribed(item)}}">{{words.subscribed}}</span>
+          </paper-button>
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div class="comments">
+        {{words.comments}}
+        <textarea class="comment-area" rows="4" cols="50" value="{{commentText::input}}" on-keydown="_check_comment"></textarea>
+        <paper-button raised disabled="{{commentDisabled}}" class="comment_button" id="comment_button" on-click="comment" hidden="{{hideCommentButtons}}">{{words.comment}}</paper-button>
+        <paper-button raised class="cancel_button" id="cancel_button" on-click="_cancel_comment" hidden="{{hideCommentButtons}}">{{words.cancel}}</paper-button>
+        <hr>
+        <template is="dom-repeat" items="[[comments]]">
+          <div class="comment">
+            <object class="comment-img" data="{{item.snippet.topLevelComment.snippet.authorProfileImageUrl}}" type="image/jpg">
+              <img class="comment-img" src="resources/default.png">
+            </object>
+            <div class="comment-name">{{item.snippet.topLevelComment.snippet.authorDisplayName}}</div>
+            <div class="comment-text">{{item.snippet.topLevelComment.snippet.textDisplay}}</div>
+          </div>
+        </template>
+      </div>  
+    </template>
+  </div>
+
+    <!--............................. AJAX CALLS ..............................-->
+
+    <iron-ajax
+      id="language_request"
+      url="{{component_base}}language/{{_lan_file}}"
+      on-response="_language_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+      id="search_request" 
+      url="{{_base_URL}}/search?{{_search_params}}" 
+      on-response="_search_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+      id="channel_request" 
+      url="{{_base_URL}}/channels?part=snippet&key={{api_key}}&id={{item.snippet.channelId}}" 
+      on-response="_channel_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+      id="comments_request"
+      url="{{_base_URL}}/commentThreads?part=snippet&order=relevance&maxResults=10&videoId={{item.id.videoId}}&key={{api_key}}"
+      on-response="_comments_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+      id="subscriptions_request"
+      url="{{_base_URL}}/subscriptions?part=snippet&mine=true&key={{api_key}}"
+      headers="{{_api_headers}}"
+      on-response="_subscriptions_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+      id="feed_request"
+      url="{{_base_URL}}/activities?part=snippet&home=true&key={{api_key}}"
+      headers="{{_api_headers}}"
+      on-response="_feed_response"
+      >
+    </iron-ajax>
+
+    <iron-ajax
+      id="post_comment"
+      method="POST"
+      url="{{_base_URL}}/commentThreads?part=snippet"
+      headers="{{_api_headers}}"
+      content-type="application/json"
+      body="{{_comment_params}}"
+      on-response="_post_comment_response"
+      >
+    <iron-ajax>
+
+    <iron-ajax
+      id="post_subscribe"
+      method="POST"
+      url="{{_base_URL}}/subscriptions?part=snippet"
+      headers="{{_api_headers}}"
+      content-type="application/json"
+      body="{{_subscribe_params}}"
+      on-response="_subscribe_response"
+      >
+    <iron-ajax>
+
+  </template>
+
+  <!--............................ PROPERTIES AND METHODS ............................-->
+
+  <script>
+
+    Polymer({
+
+      is: 'youtube-wc',
+
+      properties: {
+
+      /********************** PUBLIC CONFIG PARAMS ************************/
+
+        /* Token: The access_token generated to grant access to the API */
+        token: {
+          type: String,
+          observer: "_init"
+        },
+
+        /* API Key: The API Key for your application */
+        api_key: {
+          type: String,
+          observer: "_init"
+        },
+
+        /* Component Base: The component base directory */
+        component_base: {
+          type: String,
+          value:""
+        },
+
+        /* Language: Language for your application */
+        language: {
+          type: String,
+          observer: "_languageChanged"
+        },
+
+
+      /*********************** INTERNAL CONFIG PARAMS ***********************/
+
+        commentText: {
+          type: String,
+          observer: "_commentText_changed"
+        },
+
+        /* API methods */
+
+        _api_headers: {
+          type: String,
+          computed: "_get_api_headers(token)"
+        },
+
+        _comment_params: {
+          type: String,
+          computed: "_get_comment_params(channelId, videoId, commentText)"
+        },
+
+        _subscribe_params:{
+          type: String,
+          computed: "_get_subscribe_params(channelId)"
+        },
+
+        _base_URL: {
+          type: String,
+          value: "https://www.googleapis.com/youtube/v3"
+        },
+
+        _maxResults: {
+          type: Number,
+          value: 10
+        },
+
+        /* Pagination */
+
+        _cursor: {
+          type: Number,
+          value: 0,
+        },
+
+        _cache: {
+          type: Object,
+          value: [],
+        },
+
+        /* View */
+
+        _view_detail: {
+          type: Boolean,
+          value: false
+        },
+
+
+      },
+
+      /*_______________________________ FUNCTIONS ________________________________*/
+
+      // LANGUAGE SUPPORT
+
+      _languageChanged: function(newVal, oldValue) {
+        switch(newVal){
+          case "es":
+            this.language = "es";
+            this._lan_file = "es_es.json"
+            break;
+          default:
+            this.language = "en";
+            this._lan_file = "en_en.json"
+        }
+        if (this.component_base || this.component_base == "") {
+          this.$.language_request.generateRequest();
+        }
+      },
+
+      _language_response: function(event, detail){
+        this.words = detail.response;
+        this._refresh();
+      },
+
+      /********************************* API METHODS *********************************/
+
+      _get_api_headers: function(token){
+        return {Authorization: 'Bearer '+token};
+      },
+
+      _get_comment_params: function(channelId, videoId, commentText){
+        return {
+          snippet: {
+            channelId: channelId,
+            videoId: videoId,
+            topLevelComment: {
+              snippet: {
+                textOriginal: commentText
+              }
+            }
+          }
+        }
+      },
+
+      _get_subscribe_params: function(channelId){
+        return {
+          snippet: {
+            resourceId: {
+              channelId: channelId
+            }
+          }
+        }
+      },
+
+      // RESPONSES
+
+      _search_response: function(event, detail){
+        this.result = detail.response;
+      },
+
+      _channel_response: function(event, detail){
+        this.channel = detail.response.items[0];
+        this._view_detail = true;
+      },
+
+      _comments_response: function(event, detail){
+        this.comments = detail.response.items;
+        for (var i = 0; i < this.comments.length; i++) {
+          //Parse comment inner html
+          var text = this.comments[i].snippet.topLevelComment.snippet.textDisplay;
+          text = text.replace(/<(?:.|\n)*?>/gm, '');
+          this.comments[i].snippet.topLevelComment.snippet.textDisplay = text;
+        };        
+      },
+
+      _subscriptions_response: function(event, detail){
+        var array = [];
+        var items = detail.response.items;
+        for(var i=0; i<items.length; i++){
+          array.push(items[i].snippet.resourceId.channelId);
+        }
+        this.subscriptions = array;
+      },
+
+      _feed_response: function(event, detail){
+        var feed = [];
+        var feed = detail.response.items;/*
+        for(var i=0; i<items.length; i++){
+          if(items[i].snippet.type=="upload")feed.push(items[i]);
+        }*/
+        if(!this.result)this.result={};
+        this.result.items = feed;
+        this._refresh();
+      },
+
+      _post_comment_response: function(event, detail){
+        if(detail.response.snippet){
+          this.push('comments',detail.response);
+          this.commentText = '';
+        }
+      },
+
+      _subscribe_response: function(event, detail){
+        console.log('Subscribe reponse:',detail.response);
+        this.subscriptions.push(detail.response.snippet.resourceId.channelId);
+        this._refresh();
+      },
+
+      /******************************** PUBLIC METHODS ********************************/
+
+      /* Search: search video on YouTube matching the [_keywords] value. */
+      search: function(){
+        //Clear window and params
+        this._view_detail = false;
+        if(this.$.footer.hidden)this.$.footer.hidden = false;
+        this._cache = [];
+        this._cursor = 0;
+        this.$['square'].style.width="50px";
+        //Generate request
+        this._search_params =
+        'part=snippet&'+
+        'key=' + this.api_key + '&' +
+        'q=' + this._keywords + '&' +
+        'maxResults=' + this._maxResults;
+        
+        this._last_search = this._keywords;
+        this.$.search_request.generateRequest();
+      },
+
+      /* Comment: comment the text [commentText] on the video with id [videoId] */
+      comment: function(){
+        this.channelId = this.channel.id;
+        this.videoId = this.item.id.videoId;
+        this.$.post_comment.generateRequest();
+        this.hideCommentButtons=true;
+      },
+
+      /* Subscribe: subscribe the users channel to the specified channel*/
+      subscribe: function(e){
+        if(this._view_detail){
+          this.channelId = this.channel.id;
+        }
+        else{
+          var item = e.model.item;
+          this.channelId = item.id.channelId;
+        }
+        this.$.post_subscribe.generateRequest();
+      },
+
+      /******************************* INTERNAL METHODS ********************************/
+
+      /* Pagination */
+
+      _search_next: function(){
+        if(this._last_search && this._cache[this._cursor].nextPageToken){
+          this._search_params =
+          'part=snippet&'+
+          'key=' + this.api_key + '&' +
+          'q=' + this._last_search + '&' +
+          'maxResults=' + this._maxResults + '&' +
+          'pageToken=' + this._cache[this._cursor].nextPageToken;
+          
+          this.$.search_request.generateRequest();
+        }
+      },
+
+      _clear: function(){
+        this.result = null;
+        this.$.results_template.render();
+      },
+
+      _refresh: function(){
+        var copy = this.result;
+        this._clear();
+        this.result = copy;
+        this.$.results_template.render();
+      },
+
+      _next: function(){
+        if(this._cache[this._cursor+1]){
+          this._clear();
+          this.result = this._cache[this._cursor+1];
+        }
+        else{
+          this._cache[this._cursor] = this.result;
+          this._clear();
+          this._search_next();
+        }        
+        this._cursor++;
+        if(this._cursor > 9){
+          this.$['square'].style.width="59px";
+        }
+      },
+
+      _before: function(){
+        if(this._cursor > 0){
+          if(!this._cache[this._cursor]){
+            this._cache[this._cursor] = this.result;
+          }          
+          this._cursor--;
+          if(this._cursor == 9){
+            this.$['square'].style.width="50px";
+          }
+          this._clear();
+          this.result = this._cache[this._cursor];
+
+        }
+
+      },
+
+      /* Side Menu animation */
+
+      _toggle: function(){
+        if(this.$['dropdown-content'].style.left=="-105px"){
+          this.$['dropdown-content'].style.left="0";
+        }
+        else{
+          this.$['dropdown-content'].style.left="-105px";
+        }
+      },
+
+      /* Allow search typing ENTER */
+
+      _check_search: function(e){
+        if(e.keyCode === 13){
+          this.search();
+        }
+      },
+
+      /* Allow comment when [commentText] is not empty */
+
+      _check_comment: function(e){
+        if(this.hideCommentButtons)this.hideCommentButtons=false;
+      },
+
+      _commentText_changed: function(e){
+        if(this.commentText.length==0)this.commentDisabled=true;
+        else{
+          this.commentDisabled=false;
+        }
+      },
+
+      _cancel_comment: function(){
+        this.commentText = '';
+        this.hideCommentButtons=true;
+      },
+
+
+      _isChannel: function(item){
+        if(item.id.kind=="youtube#channel")return true;
+        else return false;
+      },
+
+      _isSubscribed: function(item){
+        console.log(item);
+        if(this.token && this.subscriptions){
+          if(this.subscriptions.indexOf(item.snippet.channelId) != -1){
+            return true;
+          }
+        }
+        return false;       
+      },
+
+      /* Detail view */
+      _detail: function(e){
+        this.item = e.model.item;
+        this.$.channel_request.generateRequest();
+        this.comments=null;
+        this.$.comments_request.generateRequest();
+        this.$.footer.hidden = true;
+        this.hideCommentButtons=true;
+        this.commentText = '';
+      },
+
+      /* Results view */
+      _back: function(){
+        this._view_detail = false;
+        this.$.footer.hidden = false;
+        this.item = {};
+      },
+
+      _getDate: function(item){
+        var d = new Date(item.snippet.publishedAt);
+        var diff = new Date() - d;
+        diff = Math.floor(diff/(1000*60*60*24));
+        var out = "";
+        if(diff == 0)out = this.words.today;
+        else{
+          if(diff == 1)out = 1 +' '+ this.words.day;
+          else if(30 > diff && diff > 1)out = diff +' '+ this.words.days;
+          else if(60 > diff && diff >= 30)out = Math.floor(diff/30) +' '+ this.words.month;
+          else if(365 > diff && diff >= 60)out = Math.floor(diff/30) +' '+ this.words.months;
+          else if(730 > diff && diff >= 365)out = Math.floor(diff/365) +' '+ this.words.year;
+          else if(diff >= 730)out = Math.floor(diff/365) +' '+ this.words.years;
+          out = this.words.published + out + this.words.ago;
+        }
+        return out;
+      },
+
+      /*************************** ELEMENT LIFECYCLE ********************************/
+
+      _init: function(newVal, oldValue){
+        if(this.token){
+          this.notLogged = false;
+        }
+        if(this.token && this.api_key){
+          this.$.subscriptions_request.generateRequest();
+          this.$.feed_request.generateRequest();
+        }
+      },
+
+      attached: function() {
+        // `attached` fires once the element and its parents have been inserted
+        // into a document.
+        //
+        // This is a good place to perform any work related to your element's
+        // visual state or active behavior (measuring sizes, beginning animations,
+        // loading resources, etc).
+        this.$['dropdown-content'].style.left="-105px";
+        this.notLogged = true;
+      },
+
+    });
+
+
+  </script>
+
+</dom-module>
