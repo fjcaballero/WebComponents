@@ -147,8 +147,47 @@ Example:
         font-size: 12px !important;
         
       }
+
       .item:hover{
           background: -webkit-linear-gradient(top,#BC3E3E,#EF3838);
+      }
+
+      .pin{
+        border-radius: 8px;
+        width: 200px;
+        height: 250px;
+      }
+
+      ​.header{
+        min-height: 60px;
+        max-height: 60px;
+      }
+
+      .content{
+        padding-top: 10px;
+        height: calc(100% - 70px);
+        text-align: center;
+        overflow-y: scroll; 
+      }
+
+      .home{
+        text-transform: none;
+        font: 24px Roboto, arial, sans-serif;
+        font-weight: 500;
+        color: red;
+      }
+
+      .itemBig{
+        display: inline-block;
+        width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        background: -webkit-linear-gradient(top,#BA1010,#EC1515);
+        color: #ffffff;
+        margin-top: 5px; 
+        margin-bottom: 5px;
+
+        font: 16px Roboto, arial, sans-serif;
       }
 
       .dropdown-content{
@@ -168,35 +207,24 @@ Example:
         transition: .5s ease;
       }
 
-      .pin{
-        border-radius: 8px;
-        width: 200px;
-        height: 250px;
+      .menu{
+        margin-right: 0 !important;
       }
-      ​.header{
-        min-height: 60px;
-        max-height:60px;
-      }
-      .content{
-        margin-top: 10px;
-        text-align: center;  
-        overflow-y: scroll;
-        max-height: calc( 100% - 70px );
-        width: 100%;
-        position: relative;       
-      }​
+
+
+
     </style>
     
     <paper-header-panel mode="seamed" class="header">
       <paper-toolbar class="paper-header red">
         <iron-icon src="logo-pinterest.png" class="icon"></iron-icon>
         <span class="title flex">{{words.title}}</span>
-        <paper-icon-button icon="refresh" on-click="refresh"></paper-icon-button>
-        <paper-icon-button icon="icons:arrow-back" on-click="before"></paper-icon-button>
+        <paper-icon-button icon="refresh" on-click="refresh" hidden="{{!hide_home}}"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-back" on-click="before" hidden="{{!hide_home}}"></paper-icon-button>
         <p>
           {{get_index}}
         </p>
-        <paper-icon-button icon="icons:arrow-forward" on-click="next"></paper-icon-button>
+        <paper-icon-button icon="icons:arrow-forward" on-click="next" hidden="{{!hide_home}}"></paper-icon-button>
         <paper-icon-button icon="menu" class="menu" on-click="toggle"></paper-icon-button>
       </paper-toolbar>
     </paper-header-panel>
@@ -218,7 +246,22 @@ Example:
 
       </template>
     </paper-menu>
+
     <div class="content">
+      <!-- Home -->
+      <div class="home" hidden="{{hide_home}}">
+        {{words.following-boards}}:
+        <template is="dom-repeat" items="[[following_boards]]">
+          <paper-button raised class="itemBig" on-click="get_pins">{{item.name}}</paper-button>
+        </template>
+        <hr>
+        {{words.my-boards}}:
+        <template is="dom-repeat" items="[[boards]]">
+            <paper-button raised class="itemBig" on-click="get_pins">{{item.name}}</paper-button>
+        </template>
+      </div>
+      
+
       <!-- PINS -->
       <template is="dom-repeat" items="{{pins}}">
         <a href="{{item.url}}" target="_blank">
@@ -384,6 +427,7 @@ Example:
       },
 
       _pins_received: function(event, detail){
+        if(!this.hide_home)this.hide_home=true;
         var pins = detail.response.data;
         this.cursor = 0;
         this.next_url = "";
@@ -496,6 +540,7 @@ Example:
         // loading resources, etc).
         this.get_user();
         this.$['dropdown-content'].style.right="-155px";
+        this.hide_home=false;
 
       },
 
