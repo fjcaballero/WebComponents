@@ -31,64 +31,6 @@ Example:
 
   <template>
 
-    <iron-ajax
-       id="request_user" 
-       url="https://api.pinterest.com/v1/me/" 
-       method="GET" 
-       params="{{get_user_param}}" 
-       handleAs='json' 
-       on-response="_user_received" 
-       >
-    </iron-ajax>
-
-    <iron-ajax
-       id="request_boards" 
-       url="https://api.pinterest.com/v1/me/boards/" 
-       method="GET" 
-       params="{{get_boards_param}}" 
-       handleAs='json' 
-       on-response="_boards_received" 
-       >
-    </iron-ajax>
-
-    <iron-ajax
-       id="request_following_boards" 
-       url="https://api.pinterest.com/v1/me/following/boards/" 
-       method="GET" 
-       params="{{get_boards_param}}" 
-       handleAs='json' 
-       on-response="_following_boards_received" 
-       >
-    </iron-ajax>
-
-    <iron-ajax
-       id="request_pins" 
-       url="https://api.pinterest.com/v1/boards/{{username}}/{{board}}/pins/" 
-       method="GET" 
-       params="{{get_pins_param}}" 
-       handleAs='json' 
-       on-response="_pins_received" 
-       >
-    </iron-ajax>
-
-    <iron-ajax
-       id="morePins" 
-       url="{{next_url}}" 
-       method="GET" 
-       handleAs='json' 
-       on-response="_more_pins_received" 
-       >
-    </iron-ajax>
-
-    <iron-ajax
-      id="requestLanguage"
-      url="{{language_url}}"
-      method="GET"
-      handleAs="json"
-      on-response="_language_response"
-      >
-    </iron-ajax>
-
     <style is="custom-style">
       :host {
         display: block;
@@ -208,9 +150,65 @@ Example:
         font-weight: lighter;
       }
 
-
-
     </style>
+
+    <iron-ajax
+       id="request_user" 
+       url="https://api.pinterest.com/v1/me/" 
+       method="GET" 
+       params="{{get_user_param}}" 
+       handleAs='json' 
+       on-response="_user_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="request_boards" 
+       url="https://api.pinterest.com/v1/me/boards/" 
+       method="GET" 
+       params="{{get_boards_param}}" 
+       handleAs='json' 
+       on-response="_boards_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="request_following_boards" 
+       url="https://api.pinterest.com/v1/me/following/boards/" 
+       method="GET" 
+       params="{{get_boards_param}}" 
+       handleAs='json' 
+       on-response="_following_boards_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="request_pins" 
+       url="https://api.pinterest.com/v1/boards/{{username}}/{{board}}/pins/" 
+       method="GET" 
+       params="{{get_pins_param}}" 
+       handleAs='json' 
+       on-response="_pins_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+       id="morePins" 
+       url="{{next_url}}" 
+       method="GET" 
+       handleAs='json' 
+       on-response="_more_pins_received" 
+       >
+    </iron-ajax>
+
+    <iron-ajax
+      id="requestLanguage"
+      url="{{language_url}}"
+      method="GET"
+      handleAs="json"
+      on-response="_language_response"
+      >
+    </iron-ajax>
     
     <paper-header-panel mode="seamed" class="header">
       <paper-toolbar class="paper-header red">
@@ -277,6 +275,25 @@ Example:
 
       properties: {
 
+        //PUBLIC PARAMS
+
+        token: String,
+
+        component_base: {
+          type: String,
+          value:"",
+          reflectToAttribute: true
+        },
+
+        language: {
+          type: String,
+          value: "es",
+          reflectToAttribute: true,
+          observer: "_languageChanged"
+        },
+
+        //CONFIG PARAMS
+
         SHOW_COUNT: {
           type: Number,
           value: 20,
@@ -307,21 +324,6 @@ Example:
         username: String,
 
         board: String,
-
-        token: String,
-
-        component_base: {
-          type: String,
-          value:"",
-          reflectToAttribute: true
-        },
-
-        language: {
-          type: String,
-          value: "es",
-          reflectToAttribute: true,
-          observer: "_languageChanged"
-        },
 
         language_url: {
           type: String,
@@ -531,24 +533,11 @@ Example:
       attached: function() {
         // `attached` fires once the element and its parents have been inserted
         // into a document.
-        //
-        // This is a good place to perform any work related to your element's
-        // visual state or active behavior (measuring sizes, beginning animations,
-        // loading resources, etc).
         this.get_user();
         this.$['dropdown-content'].style.right="-155px";
         this.hide_home=false;
 
       },
-
-      detached: function() {
-        // The analog to `attached`, `detached` fires when the element has been
-        // removed from a document.
-        //
-        // Use this to clean up anything you did in `attached`.
-      },
-
-      // Element Behavior
 
     });
 
