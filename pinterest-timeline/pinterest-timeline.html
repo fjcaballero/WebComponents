@@ -25,19 +25,8 @@ Example:
 <link rel="import" href="../iron-flex-layout/classes/iron-flex-layout.html">
 <link rel="import" href="../paper-material/paper-material.html">
 
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Aclonica" />
 
-<!--
-Component that shows your feed from Pinterest
-
-Example:
-
-    <pinterest-timeline token="Your token"></pinterest-timeline>
-
-@group Seed Elements
-@element pinterest-timeline
-@demo demo/index.html
-@hero hero.svg
--->
 <dom-module id="pinterest-timeline">
 
   <template>
@@ -140,12 +129,10 @@ Example:
         text-transform: none;
         background: -webkit-linear-gradient(top,#BA1010,#EC1515);
         padding-top: 1px;
-        margin: 3px;
-        margin-bottom: 5px;
-        min-height: 30px;
+        margin-bottom: 7px;
         width: 90%;
         font-size: 12px !important;
-        
+        padding: 5px;
       }
 
       .item:hover{
@@ -172,9 +159,9 @@ Example:
 
       .home{
         text-transform: none;
-        font: 24px Roboto, arial, sans-serif;
-        font-weight: 500;
-        color: red;
+        font-size: 24px;
+        font-family: Aclonica;
+        color: var(--paper-red-700);
       }
 
       .itemBig{
@@ -187,7 +174,12 @@ Example:
         margin-top: 5px; 
         margin-bottom: 5px;
 
+        text-transform: none;
         font: 16px Roboto, arial, sans-serif;
+      }
+
+      .itemBig:hover{
+        background: -webkit-linear-gradient(top,#BC3E3E,#EF3838);
       }
 
       .dropdown-content{
@@ -209,6 +201,11 @@ Example:
 
       .menu{
         margin-right: 0 !important;
+      }
+
+      .dropdown-content b{
+        font-family: Aclonica;
+        font-weight: lighter;
       }
 
 
