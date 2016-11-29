@@ -63,7 +63,7 @@ Example:
 
       .title{
         margin-left: 0px !important;
-        font-size: 16px !important;
+        font-size: 16px ;
         text-align: center;
       }
 
@@ -150,7 +150,68 @@ Example:
         font-weight: lighter;
       }
 
+      @media only screen and (max-device-width : 667px) {
+        :host{
+          min-width: 100%;
+          height: 50%;
+        }
+
+        .header{
+          min-height: 100px !important;
+          max-height: 100px !important;
+          height: 100px;
+        }
+
+        .header p{
+          font-size: 40px;
+          margin-top: 35px;
+          margin-bottom: 25px;
+        }
+
+        .red{
+          height: 100%;
+        }
+
+        .content{
+          height: calc(100% - 100px);
+        }
+
+        .icon{
+          width: auto;
+          height: 100px;
+          padding-top: 25px;
+        }
+
+        paper-icon-button{
+          width: 100px;
+          height: 100px;
+          padding-top: 25px;
+        }
+
+        .title{
+          font-size: 35px !important;
+          margin-top: 20px;
+        }
+
+        .home{
+          font-size: 40px;
+        }
+
+        .itemBig{
+          font-size: 30px;
+        }
+
+        .pin{
+          width: 90%;
+          height: auto;
+          margin-bottom: 40px;
+        }
+      }
+
     </style>
+
+    <!-- Declare a isMobileNav variable that will be dynamically filled by an iron query -->
+    <iron-media-query query="only screen and (max-device-width : 667px)" query-matches="{{isMobileNav}}"></iron-media-query> 
 
     <iron-ajax
        id="request_user" 
@@ -343,7 +404,14 @@ Example:
         get_pins_param: {
           type: String,
           computed: "_get_pins_param(token,REQ_LIMIT)"
-        }
+        },
+
+        isMobileNav:{
+          type: Boolean,
+          observer: '_isMobileNavChanged(isMobileNav)'
+        },
+
+        
 
       },
 
@@ -537,6 +605,11 @@ Example:
         this.$['dropdown-content'].style.right="-155px";
         this.hide_home=false;
 
+      },
+
+      // Each time media query turns true or false (like a toggle), refresh styles
+       _isMobileNavChanged: function(param) {
+          this.updateStyles();
       },
 
     });
