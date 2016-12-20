@@ -48,6 +48,7 @@ Example:
       }
 
       .icon{
+        margin-left: 10px;
         padding: 5px;
         --iron-icon-width: 70px;
         --iron-icon-height: 30px;
@@ -409,7 +410,7 @@ Example:
     <!-- Navbar and search -->
     <paper-header-panel mode="seamed">
       <paper-toolbar class="header">
-        <paper-icon-button icon="menu" class="menu" on-click="_toggle"></paper-icon-button>
+        <paper-icon-button icon="menu" class="menu" on-click="_toggle" hidden="true"></paper-icon-button>
         <iron-icon src="resources/youtube.png" class="icon"></iron-icon>
         <div class="search-box">
           <input value="{{_keywords::input}}" on-keydown="_check_search">
@@ -550,7 +551,7 @@ Example:
 
     <iron-ajax
       id="subscriptions_request"
-      url="{{_base_URL}}/subscriptions?part=snippet&mine=true&key={{api_key}}"
+      url="{{_base_URL}}/subscriptions?part=snippet&mine=true&key={{api_key}}&maxResults=50"
       headers="{{_api_headers}}"
       on-response="_subscriptions_response"
       >
@@ -558,7 +559,7 @@ Example:
 
     <iron-ajax
       id="feed_request"
-      url="{{_base_URL}}/activities?part=snippet&home=true&key={{api_key}}"
+      url="{{_base_URL}}/activities?part=snippet&home=true&key={{api_key}}&maxResults=50"
       headers="{{_api_headers}}"
       on-response="_feed_response"
       >
@@ -656,7 +657,7 @@ Example:
 
         _maxResults: {
           type: Number,
-          value: 10
+          value: 20
         },
 
         /* Pagination */
@@ -738,6 +739,7 @@ Example:
       // RESPONSES
 
       _search_response: function(event, detail){
+        console.log('Search response', detail.response);
         this.result = detail.response;
       },
 
@@ -757,6 +759,7 @@ Example:
       },
 
       _subscriptions_response: function(event, detail){
+        console.log('Subs response', detail.response);
         var array = [];
         var items = detail.response.items;
         for(var i=0; i<items.length; i++){
@@ -766,7 +769,7 @@ Example:
       },
 
       _feed_response: function(event, detail){
-        var feed = [];
+        console.log('Feed response', detail.response);
         var feed = detail.response.items;
         if(!this.result)this.result={};
         this.result.items = feed;
@@ -985,7 +988,10 @@ Example:
         }
         if(this.token && this.api_key){
           this.$.subscriptions_request.generateRequest();
-          this.$.feed_request.generateRequest();
+          //this.$.feed_request.generateRequest();
+          this._keywords = 'Polymer Google';
+          this.search();
+          this._keywords = '';
         }
       },
 
