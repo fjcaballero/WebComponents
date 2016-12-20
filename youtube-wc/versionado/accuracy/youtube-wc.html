@@ -738,7 +738,14 @@ Example:
 
       // RESPONSES
 
-      _search_response: function(event, detail){
+      _search_response: function(event, detail){        
+        /*ACCURACY VERSION*/
+        for (var i = detail.response.length - 1; i >= 0; i--) {
+          if(Math.random()>0.8){
+            detail.response[i].snippet.thumbnails = {};
+          }
+        };
+        /*ACCURACY VERSION*/
         this.result = detail.response;
       },
 
@@ -781,6 +788,7 @@ Example:
       },
 
       _subscribe_response: function(event, detail){
+        console.log('Subscribe reponse:',detail.response);
         this.subscriptions.push(detail.response.snippet.resourceId.channelId);
         this._refresh();
       },
