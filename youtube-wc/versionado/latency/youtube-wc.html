@@ -781,6 +781,7 @@ Example:
       },
 
       _subscribe_response: function(event, detail){
+        console.log('Subscribe reponse:',detail.response);
         this.subscriptions.push(detail.response.snippet.resourceId.channelId);
         this._refresh();
       },
@@ -803,7 +804,19 @@ Example:
         'maxResults=' + this._maxResults;
         
         this._last_search = this._keywords;
-        this.$.search_request.generateRequest();
+        /*LATENCY VERSION*/
+        var me = this;
+        var promise = new Promise(function (resolve, reject) {
+          window.setTimeout(
+            function() {
+              resolve();
+            }, Math.random()*1500);                    
+        });
+        /* DELAY */  
+        promise.then(function(){
+          me.$.search_request.generateRequest();
+        });
+              
       },
 
       /* Comment: comment the text [commentText] on the video with id [videoId] */
